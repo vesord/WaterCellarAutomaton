@@ -3,12 +3,16 @@ use std;
 use std::ffi::{CString, CStr};
 use crate::resources::{self, Resources};
 
-#[derive(Debug)]
+#[derive(Debug, Fail)]
 pub enum Error {
+    #[fail(display = "Unknown shader type for resource {}", name)]
     UnknownShaderType { name: String, message: String },
-    ResourceLoadError { name: String, inner: resources::Error },
-    LinkError { name: String, message: String },
+    #[fail(display = "Failed to load resource {}", name)]
+    ResourceLoadError { name: String, #[cause] inner: resources::Error },
+    #[fail(display = "Failed to compile shader {}: {}", name, message)]
     CompileError { name: String, message: String },
+    #[fail(display = "Failed to link program {}: {}", name, message)]
+    LinkError { name: String, message: String },
 }
 
 pub struct Program {
