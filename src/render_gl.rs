@@ -1,12 +1,12 @@
 use gl;
 use std;
 use std::ffi::{CString, CStr};
-use crate::resources::Resources;
+use crate::resources::{self, Resources};
 
 #[derive(Debug)]
 pub enum Error {
     UnknownShaderType { name: String, message: String },
-    ResourceLoadError { name: String, message: String },
+    ResourceLoadError { name: String, inner: resources::Error },
     LinkError { name: String, message: String },
     CompileError { name: String, message: String },
 }
@@ -39,10 +39,13 @@ impl Program {
             })
             .collect::<Result<Vec<Shader>, Error>>()?;
 
-        Program::from_shaders(gl, &shaders)
+        Program::from_shaders(gl, &shaders[..]).map_err(|message| Error::LinkError {
+            name: name.into(),
+            message,
+        })
     }
 
-    pub fn from_shaders(gl: &gl::Gl, shaders: &[Shader]) -> Result<Program, Error> {
+    pub fn from_shaders(gl: &gl::Gl, shaders: &[Shader]) -> Result<Program, String> {
         let program_id = unsafe { gl.CreateProgram() };
         for shader in shaders {
             unsafe { gl.AttachShader(program_id, shader.id()); }
@@ -68,10 +71,7 @@ impl Program {
                     error_msg.as_ptr() as *mut gl::types::GLchar
                 );
             }
-            return Err(Error::LinkError {
-                name: "program".to_owned(),
-                message: error_msg.to_string_lossy().into_owned()
-            });
+            return Err(error_msg.to_string_lossy().into_owned());
         }
 
         for shader in shaders {
@@ -113,13 +113,13 @@ impl Shader {
             .map(|&(_, kind)| kind)
             .ok_or_else(|| Error::UnknownShaderType {
                 name: name.to_owned(),
-                message: "failed to recognize shader extention".to_owned()
+                message: "failed to recognize shader extension".to_owned()
             })?;
 
         let source = res.load_cstring(name)
             .map_err(|e| Error::ResourceLoadError {
-                name: name.to_owned(),
-                message: format!("{:?}", e),
+                name: name.into(),
+                inner: e,
             })?;
 
         Shader::from_source(gl, &source, shader_kind)
