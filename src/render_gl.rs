@@ -3,6 +3,14 @@ use std;
 use std::ffi::{CString, CStr};
 use crate::resources::Resources;
 
+#[derive(Debug)]
+pub enum Error {
+    UnknownShaderType { name: String, message: String },
+    ResourceLoadError { name: String, message: String },
+    LinkError { name: String, message: String },
+    CompileError { name: String, message: String },
+}
+
 pub struct Program {
     gl: gl::Gl,
     id: gl::types::GLuint,
@@ -19,7 +27,7 @@ impl Program {
         }
     }
 
-    pub fn from_res(gl: &gl::Gl, res: &Resources, name: &str) -> Result<Program, String> {
+    pub fn from_res(gl: &gl::Gl, res: &Resources, name: &str) -> Result<Program, Error> {
         const POSSIBLE_EXT: [&str; 2] = [
             ".vert",
             ".frag",
@@ -29,12 +37,12 @@ impl Program {
             .map(|file_extension| {
                 Shader::from_res(gl, res, &format!("{}{}", name, file_extension))
             })
-            .collect::<Result<Vec<Shader>, String>>()?;
+            .collect::<Result<Vec<Shader>, Error>>()?;
 
         Program::from_shaders(gl, &shaders)
     }
 
-    pub fn from_shaders(gl: &gl::Gl, shaders: &[Shader]) -> Result<Program, String> {
+    pub fn from_shaders(gl: &gl::Gl, shaders: &[Shader]) -> Result<Program, Error> {
         let program_id = unsafe { gl.CreateProgram() };
         for shader in shaders {
             unsafe { gl.AttachShader(program_id, shader.id()); }
@@ -60,7 +68,10 @@ impl Program {
                     error_msg.as_ptr() as *mut gl::types::GLchar
                 );
             }
-            return Err(error_msg.to_string_lossy().into_owned());
+            return Err(Error::LinkError {
+                name: "program".to_owned(),
+                message: error_msg.to_string_lossy().into_owned()
+            });
         }
 
         for shader in shaders {
@@ -89,7 +100,7 @@ impl Shader {
         self.id
     }
 
-    pub fn from_res(gl: &gl::Gl, res: &Resources, name: &str) -> Result<Shader, String> {
+    pub fn from_res(gl: &gl::Gl, res: &Resources, name: &str) -> Result<Shader, Error> {
         const POSSIBLE_EXT: [(&str, gl::types::GLenum); 2] = [
             (".vert", gl::VERTEX_SHADER),
             (".frag", gl::FRAGMENT_SHADER),
@@ -100,10 +111,16 @@ impl Shader {
                 name.ends_with(file_extension)
             })
             .map(|&(_, kind)| kind)
-            .ok_or_else(|| format!("Can not determine shader type for resource {}", name))?;
+            .ok_or_else(|| Error::UnknownShaderType {
+                name: name.to_owned(),
+                message: "failed to recognize shader extention".to_owned()
+            })?;
 
         let source = res.load_cstring(name)
-            .map_err(|e| format!("Error loading resource {}: {:?}", name, e))?;
+            .map_err(|e| Error::ResourceLoadError {
+                name: name.to_owned(),
+                message: format!("{:?}", e),
+            })?;
 
         Shader::from_source(gl, &source, shader_kind)
     }
@@ -112,7 +129,7 @@ impl Shader {
         gl: &gl::Gl,
         source: &CStr,
         kind: gl::types::GLenum
-    ) -> Result<Shader, String> {
+    ) -> Result<Shader, Error> {
         let id = shader_from_source(gl, source, kind)?;
         Ok(Shader { gl: gl.clone(), id })
     }
@@ -138,7 +155,7 @@ fn shader_from_source(
     gl: &gl::Gl,
     source: &CStr,
     kind: gl::types::GLuint
-) -> Result<gl::types::GLuint, String> {
+) -> Result<gl::types::GLuint, Error> {
     let shader = unsafe { gl.CreateShader(kind) };
 
     unsafe {
@@ -165,7 +182,10 @@ fn shader_from_source(
                 error_msg.as_ptr() as *mut gl::types::GLchar
             );
         }
-        return Err(error_msg.to_string_lossy().into_owned());
+        return Err(Error::CompileError {
+            name: "shader".to_owned(),
+            message: error_msg.to_string_lossy().into_owned(),
+        })
     }
 
     Ok(shader)
