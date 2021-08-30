@@ -2,6 +2,7 @@
 name = "humangl"
 version = "0.1.0"
 edition = "2018"
+build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -11,3 +12,6 @@ gl = { path = "lib_gl/gl" }
 
 [features]
 gl_debug = ["gl/debug"]
+
+[build-dependencies]
+walkdir = "2.3.2"

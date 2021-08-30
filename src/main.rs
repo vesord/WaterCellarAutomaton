@@ -1,9 +1,11 @@
 mod render_gl;
+mod resources;
 
 extern crate sdl2;
 extern crate gl;
 
-
+use resources::Resources;
+use std::path::Path;
 
 fn main() {
     let sdl = sdl2::init().unwrap();
@@ -29,17 +31,8 @@ fn main() {
 
     let mut event_pump = sdl.event_pump().unwrap();
 
-    use std::ffi::CString;
-    let vert_shader = render_gl::Shader::from_vert_source(
-        &gl, &CString::new(include_str!("triangle.vert")).unwrap()
-    ).unwrap();
-    let frag_shader = render_gl::Shader::from_frag_source(
-        &gl, &CString::new(include_str!("triangle.frag")).unwrap()
-    ).unwrap();
-
-    let shader_program = render_gl::Program::from_shaders(
-        &gl, &[vert_shader, frag_shader]
-    ).unwrap();
+    let res = Resources::from_relative_exe_path(Path::new("assets")).unwrap();
+    let shader_program = render_gl::Program::from_res(&gl, &res, "shaders/triangle").unwrap();
 
     let vertices: Vec<f32> = vec![
         -0.5, -0.5, 0.0,
