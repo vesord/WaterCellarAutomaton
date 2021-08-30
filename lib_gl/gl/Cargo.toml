@@ -1,13 +1,13 @@
 [package]
-name = "humangl"
+name = "gl"
 version = "0.1.0"
 edition = "2018"
+build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
-sdl2 = { version = "0.34.5", features = ["bundled", "static-link"] }
-gl = { path = "lib_gl/gl" }
+[build-dependencies]
+gl_generator = { version = "0.14.0" }
 
 [features]
-gl_debug = ["gl/debug"]
+debug = []
