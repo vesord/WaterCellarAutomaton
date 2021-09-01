@@ -14,8 +14,8 @@ fn main() {
         .join(env::var("PROFILE").unwrap());
 
     copy(
-        &manifest_dir.join("assets"),
-        &executable_path.join("assets"),
+        &manifest_dir.join("shaders"),
+        &executable_path.join("shaders"),
     )
 }
 

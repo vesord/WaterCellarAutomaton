@@ -10,6 +10,7 @@ build = "build.rs"
 sdl2 = { version = "0.34.5", features = ["bundled", "static-link"] }
 failure = "0.1.8"
 gl = { path = "lib_gl/gl" }
+render_gl_derive = { path = "render_gl_derive"}
 
 [features]
 gl_debug = ["gl/debug"]

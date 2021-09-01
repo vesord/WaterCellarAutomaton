@@ -2,6 +2,7 @@
 
 extern crate sdl2;
 extern crate gl;
+#[macro_use] extern crate render_gl_derive;
 
 mod resources;
 use resources::Resources;
@@ -12,31 +13,14 @@ use render_gl::data;
 use std::path::Path;
 use failure::err_msg;
 
+#[derive(VertexAttribPointers)]
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
 struct Vertex {
+    #[location = 0]
     pos: data::f32_f32_f32,
+    #[location = 1]
     clr: data::f32_f32_f32,
-}
-
-impl Vertex {
-    fn vertex_attrib_pointers(gl: &gl::Gl) {
-        let stride = std::mem::size_of::<Self>();
-
-        let location = 0;
-        let offset = 0;
-
-        unsafe {
-            data::f32_f32_f32::vertex_attrib_pointer(gl, stride, location, offset);
-        }
-
-        let location = 1;
-        let offset = offset + std::mem::size_of::<data::f32_f32_f32>();
-
-        unsafe {
-            data::f32_f32_f32::vertex_attrib_pointer(gl, stride, location, offset);
-        }
-    }
 }
 
 fn main() {
@@ -68,8 +52,8 @@ fn run() -> Result<(), failure::Error> {
 
     let mut event_pump = sdl.event_pump().map_err(err_msg)?;
 
-    let res = Resources::from_relative_exe_path(Path::new("assets"))?;
-    let shader_program = render_gl::Program::from_res(&gl, &res, "shaders/triangle")?;
+    let res = Resources::from_relative_exe_path(Path::new("shaders"))?;
+    let shader_program = render_gl::Program::from_res(&gl, &res, "triangle")?;
 
     let vertices: Vec<Vertex> = vec![
         Vertex { pos: (-0.5, -0.5, 0.0).into(), clr: (1.0, 0.0, 0.0).into() },
