@@ -151,7 +151,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f0a01e0497841a3b2db4f8afa483cce65f7e96a3498bd6c541734792aeac8fe7"
 
 [[package]]
-name = "gl"
+name = "gl_builder"
 version = "0.1.0"
 dependencies = [
  "gl_generator",
@@ -169,12 +169,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "gl_render"
+version = "0.1.0"
+dependencies = [
+ "failure",
+ "gl_builder",
+ "resources",
+]
+
+[[package]]
 name = "humangl"
 version = "0.1.0"
 dependencies = [
  "failure",
- "gl",
+ "gl_builder",
+ "gl_render",
  "render_gl_derive",
+ "resources",
  "sdl2",
  "walkdir",
 ]
@@ -281,6 +292,13 @@ version = "0.1.0"
 dependencies = [
  "quote",
  "syn",
+]
+
+[[package]]
+name = "resources"
+version = "0.1.0"
+dependencies = [
+ "failure",
 ]
 
 [[package]]

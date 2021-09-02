@@ -1,3 +1,4 @@
 /target
 .idea/
-/lib_gl/gl/target
+/gl_builder/target
+**/target

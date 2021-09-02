@@ -8,12 +8,14 @@ build = "build.rs"
 
 [dependencies]
 sdl2 = { version = "0.34.5", features = ["bundled", "static-link"] }
-failure = "0.1.8"
-gl = { path = "lib_gl/gl" }
-render_gl_derive = { path = "render_gl_derive"}
+failure = "0.1"
+gl_builder = { path = "gl_builder" }
+gl_render = { path = "gl_render" }
+render_gl_derive = { path = "render_gl_derive" }
+resources = { path = "resources" }
 
 [features]
-gl_debug = ["gl/debug"]
+gl_debug = ["gl_builder/debug"]
 
 [build-dependencies]
 walkdir = "2.3.2"

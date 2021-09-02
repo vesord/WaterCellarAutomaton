@@ -1,5 +1,5 @@
 [package]
-name = "gl"
+name = "gl_builder"
 version = "0.1.0"
 edition = "2018"
 build = "build.rs"

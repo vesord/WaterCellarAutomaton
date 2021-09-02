@@ -3,17 +3,17 @@
 extern crate sdl2;
 use sdl2::event::Event;
 
-extern crate gl;
+extern crate gl_builder as gl;
 #[macro_use] extern crate render_gl_derive;
 
-mod resources;
-use resources::Resources;
-mod render_gl;
+extern crate resources;
+extern crate gl_render;
+
+
 mod debug;
 
 use std::path::Path;
 use failure::err_msg;
-use crate::render_gl::ColorBuffer;
 
 mod triangle;
 
@@ -39,15 +39,15 @@ fn run() -> Result<(), failure::Error> {
     let _gl_context = window.gl_create_context().map_err(err_msg)?;
     let gl = gl::Gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
-    let mut viewport = render_gl::Viewport::for_window(900, 700);
+    let mut viewport = gl_render::Viewport::for_window(900, 700);
     viewport.use_it(&gl);
 
-    let color_buffer: ColorBuffer = (0.3, 0.3, 0.5).into();
+    let color_buffer: gl_render::ColorBuffer = (0.3, 0.3, 0.5).into();
     color_buffer.use_it(&gl);
 
     let mut event_pump = sdl.event_pump().map_err(err_msg)?;
 
-    let res = Resources::from_relative_exe_path(Path::new("shaders"))?;
+    let res = resources::Resources::from_relative_exe_path(Path::new("shaders"))?;
 
     let triangle = triangle::Triangle::new(&res, &gl)?;
 

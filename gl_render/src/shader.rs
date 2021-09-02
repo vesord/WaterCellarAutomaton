@@ -1,7 +1,7 @@
 use gl;
 use std;
 use std::ffi::{CString, CStr};
-use crate::resources::{self, Resources};
+use resources::{self, Resources};
 
 #[derive(Debug, Fail)]
 pub enum Error {
@@ -21,7 +21,7 @@ pub struct Program {
 }
 
 impl Program {
-    // pub fn id(&self) -> gl::types::GLuint {
+    // pub fn id(&self) -> gl_builder::types::GLuint {
     //     self.id
     // }
 
@@ -138,12 +138,12 @@ impl Shader {
         Ok(Shader { gl: gl.clone(), id })
     }
 
-    // pub fn from_vert_source(gl: &gl::Gl, source: &CStr) -> Result<Shader, String> {
-    //     Shader::from_source(gl, source, gl::VERTEX_SHADER)
+    // pub fn from_vert_source(gl_builder: &gl_builder::Gl, source: &CStr) -> Result<Shader, String> {
+    //     Shader::from_source(gl_builder, source, gl_builder::VERTEX_SHADER)
     // }
     //
-    // pub fn from_frag_source(gl: &gl::Gl, source: &CStr) -> Result<Shader, String> {
-    //     Shader::from_source(gl, source, gl::FRAGMENT_SHADER)
+    // pub fn from_frag_source(gl_builder: &gl_builder::Gl, source: &CStr) -> Result<Shader, String> {
+    //     Shader::from_source(gl_builder, source, gl_builder::FRAGMENT_SHADER)
     // }
 }
 
