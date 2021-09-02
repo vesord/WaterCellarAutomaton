@@ -7,7 +7,7 @@ extern crate gl;
 mod resources;
 use resources::Resources;
 mod render_gl;
-use render_gl::data;
+use render_gl::{data, buffer};
 
 
 use std::path::Path;
@@ -61,34 +61,19 @@ fn run() -> Result<(), failure::Error> {
         Vertex { pos: (0.0, 0.5, 0.0).into(), clr: (0.0, 0.0, 1.0, 1.0).into() },
     ];
 
-    let mut vbo: gl::types::GLuint = 0;
-    unsafe {
-        gl.GenBuffers(1, &mut vbo);
-    }
+    let vbo = buffer::ArrayBuffer::new(&gl);
+    vbo.bind();
+    vbo.static_draw_data(&vertices);
+    vbo.unbind();
 
-    unsafe {
-        gl.BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl.BufferData(
-            gl::ARRAY_BUFFER,
-            (vertices.len() * std::mem::size_of::<Vertex>()) as gl::types::GLsizeiptr,
-            vertices.as_ptr() as *const gl::types::GLvoid,
-            gl::STATIC_DRAW,
-        );
-        gl.BindBuffer(gl::ARRAY_BUFFER, 0);
-    }
 
-    let mut vao: gl::types::GLuint = 0;
-    unsafe {
-        gl.GenVertexArrays(1, &mut vao);
-    }
+    let vao = buffer::VertexArray::new(&gl);
 
-    unsafe {
-        gl.BindVertexArray(vao);
-        gl.BindBuffer(gl::ARRAY_BUFFER, vbo);
-        Vertex::vertex_attrib_pointers(&gl);
-        gl.BindBuffer(gl::ARRAY_BUFFER, 0);
-        gl.BindVertexArray(0);
-    }
+    vao.bind();
+    vbo.bind();
+    Vertex::vertex_attrib_pointers(&gl);
+    vbo.unbind();
+    vao.unbind();
 
     'main: loop {
         for event in event_pump.poll_iter() {
@@ -101,8 +86,8 @@ fn run() -> Result<(), failure::Error> {
         unsafe { gl.Clear(gl::COLOR_BUFFER_BIT); }
 
         shader_program.use_it();
+        vao.bind();
         unsafe {
-            gl.BindVertexArray(vao);
             gl.DrawArrays(
                 gl::TRIANGLES,
                 0,
