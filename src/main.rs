@@ -1,31 +1,25 @@
 #[macro_use] extern crate failure;
 
 extern crate sdl2;
+use sdl2::event::Event;
+
 extern crate gl;
 #[macro_use] extern crate render_gl_derive;
 
 mod resources;
 use resources::Resources;
 mod render_gl;
-use render_gl::{data, buffer};
-
+mod debug;
 
 use std::path::Path;
 use failure::err_msg;
+use crate::render_gl::ColorBuffer;
 
-#[derive(VertexAttribPointers)]
-#[derive(Copy, Clone, Debug)]
-#[repr(C, packed)]
-struct Vertex {
-    #[location = 0]
-    pos: data::f32_f32_f32,
-    #[location = 1]
-    clr: data::f32_f32_f32_f32,
-}
+mod triangle;
 
 fn main() {
     if let Err(e) = run() {
-        println!("{}", failure_to_string(e));
+        println!("{}", debug::failure_to_string(e));
     }
 }
 
@@ -37,7 +31,7 @@ fn run() -> Result<(), failure::Error> {
     gl_attr.set_context_version(4, 6);
 
     let window = video_subsystem
-        .window("HumanGL", 800, 800)
+        .window("HumanGL", 900, 700)
         .opengl()
         .resizable()
         .build()?;
@@ -45,83 +39,38 @@ fn run() -> Result<(), failure::Error> {
     let _gl_context = window.gl_create_context().map_err(err_msg)?;
     let gl = gl::Gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
-    unsafe {
-        gl.Viewport(0, 0, 800, 800);
-        gl.ClearColor(0.3, 0.3, 0.5, 1.0);
-    }
+    let mut viewport = render_gl::Viewport::for_window(900, 700);
+    viewport.use_it(&gl);
+
+    let color_buffer: ColorBuffer = (0.3, 0.3, 0.5).into();
+    color_buffer.use_it(&gl);
 
     let mut event_pump = sdl.event_pump().map_err(err_msg)?;
 
     let res = Resources::from_relative_exe_path(Path::new("shaders"))?;
-    let shader_program = render_gl::Program::from_res(&gl, &res, "triangle")?;
 
-    let vertices: Vec<Vertex> = vec![
-        Vertex { pos: (-0.5, -0.5, 0.0).into(), clr: (1.0, 0.0, 0.0, 1.0).into() },
-        Vertex { pos: (0.5, -0.5, 0.0).into(), clr: (0.0, 1.0, 0.0, 1.0).into() },
-        Vertex { pos: (0.0, 0.5, 0.0).into(), clr: (0.0, 0.0, 1.0, 1.0).into() },
-    ];
-
-    let vbo = buffer::ArrayBuffer::new(&gl);
-    vbo.bind();
-    vbo.static_draw_data(&vertices);
-    vbo.unbind();
-
-
-    let vao = buffer::VertexArray::new(&gl);
-
-    vao.bind();
-    vbo.bind();
-    Vertex::vertex_attrib_pointers(&gl);
-    vbo.unbind();
-    vao.unbind();
+    let triangle = triangle::Triangle::new(&res, &gl)?;
 
     'main: loop {
         for event in event_pump.poll_iter() {
             match event {
-                sdl2::event::Event::Quit {..} => break 'main,
+                Event::Quit {..} => break 'main,
+                Event::Window {
+                    win_event: sdl2::event::WindowEvent::Resized(w, h),
+                    ..
+                } => {
+                    viewport.update_size(w, h);
+                    viewport.use_it(&gl);
+                }
                 _ => {},
             }
         }
 
-        unsafe { gl.Clear(gl::COLOR_BUFFER_BIT); }
-
-        shader_program.use_it();
-        vao.bind();
-        unsafe {
-            gl.DrawArrays(
-                gl::TRIANGLES,
-                0,
-                3
-            );
-        }
+        color_buffer.clear(&gl);
+        triangle.render(&gl);
 
         window.gl_swap_window();
     }
 
     Ok(())
-}
-
-pub fn failure_to_string(e: failure::Error) -> String {
-    use std::fmt::Write;
-
-    let mut result = String::new();
-
-    for (i, cause) in e.iter_chain().collect::<Vec<_>>().into_iter().rev().enumerate() {
-        if i > 0 {
-            let _ = writeln!(&mut result, "   Which caused the following issue:");
-        }
-        let _ = write!(&mut result, "{}", cause);
-        if let Some(backtrace) = cause.backtrace() {
-            let backtrace_str = format!("{}", backtrace);
-            if backtrace_str.len() > 0 {
-                let _ = writeln!(&mut result, " This happened at {}", backtrace);
-            } else {
-                let _ = writeln!(&mut result);
-            }
-        } else {
-            let _ = writeln!(&mut result);
-        }
-    }
-
-    result
 }

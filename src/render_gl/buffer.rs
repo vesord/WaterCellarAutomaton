@@ -16,7 +16,7 @@ impl BufferType for BufferTypeElementArray {
 }
 
 pub type ArrayBuffer = Buffer<BufferTypeArray>;
-pub type ElementArrayBuffer = Buffer<BufferTypeElementArray>;
+// pub type ElementArrayBuffer = Buffer<BufferTypeElementArray>;
 
 pub struct Buffer<B: BufferType> {
     gl: gl::Gl,
