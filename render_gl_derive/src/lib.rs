@@ -29,7 +29,6 @@ fn impl_vertex_attrib_pointer(ast: &syn::DeriveInput) -> TokenStream {
         }
     };
     // panic!("code = {:#?}",  gen.to_string());
-    println!("{}", gen.to_string());
     gen.into()
 }
 

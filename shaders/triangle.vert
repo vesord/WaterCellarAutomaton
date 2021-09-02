@@ -1,9 +1,9 @@
 #version 460 core
 
 layout (location = 0) in vec3 Position;
-layout (location = 1) in vec3 inColor;
+layout (location = 1) in vec4 inColor;
 
-out vec3 vertColor;
+out vec4 vertColor;
 
 void main()
 {
