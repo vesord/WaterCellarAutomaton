@@ -1,20 +1,15 @@
 #[macro_use] extern crate failure;
-
-extern crate sdl2;
-use sdl2::event::Event;
-
-extern crate gl_builder as gl;
 #[macro_use] extern crate render_gl_derive;
-
+extern crate sdl2;
+extern crate gl_builder as gl;
 extern crate resources;
 extern crate gl_render;
 
-
-mod debug;
-
 use std::path::Path;
 use failure::err_msg;
+use sdl2::event::Event;
 
+mod debug;
 mod triangle;
 
 fn main() {
