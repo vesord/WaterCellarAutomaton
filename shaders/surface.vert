@@ -4,10 +4,10 @@ layout (location = 0) in vec3 Position;
 
 out vec4 passColor;
 
-uniform vec4 uniColor;
+uniform mat4 mvp_transform;
 
 void main()
 {
-    gl_Position = vec4(Position, 1.0);
-    passColor = uniColor;
+    gl_Position = mvp_transform * vec4(Position, 1.0);
+    passColor = vec4(abs(gl_Position.z), 0., 0., 1.);
 }

@@ -14,6 +14,7 @@ fn main() {
     ]);
 
     if env::var("CARGO_FEATURE_DEBUG").is_ok() {
+        println!("BUILT WITH DEBUG");
         registry.write_bindings(
             DebugStructGenerator, // different generator
             &mut file_gl

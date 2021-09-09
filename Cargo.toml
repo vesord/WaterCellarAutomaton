@@ -9,6 +9,7 @@ build = "build.rs"
 [dependencies]
 sdl2 = { version = "0.34.5", features = ["bundled", "static-link"] }
 failure = "0.1"
+nalgebra = "0.29"
 gl_builder = { path = "gl_builder" }
 gl_render = { path = "gl_render" }
 render_gl_derive = { path = "render_gl_derive" }
