@@ -178,19 +178,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "humangl"
-version = "0.1.0"
-dependencies = [
- "failure",
- "gl_builder",
- "gl_render",
- "render_gl_derive",
- "resources",
- "sdl2",
- "walkdir",
-]
-
-[[package]]
 name = "khronos_api"
 version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -299,6 +286,19 @@ name = "resources"
 version = "0.1.0"
 dependencies = [
  "failure",
+]
+
+[[package]]
+name = "rust_opengl_template"
+version = "0.1.0"
+dependencies = [
+ "failure",
+ "gl_builder",
+ "gl_render",
+ "render_gl_derive",
+ "resources",
+ "sdl2",
+ "walkdir",
 ]
 
 [[package]]
