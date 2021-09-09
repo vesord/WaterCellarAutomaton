@@ -21,9 +21,9 @@ pub struct Program {
 }
 
 impl Program {
-    // pub fn id(&self) -> gl_builder::types::GLuint {
-    //     self.id
-    // }
+    pub fn id(&self) -> gl_builder::types::GLuint {
+        self.id
+    }
 
     pub fn use_it(&self) {
         unsafe {

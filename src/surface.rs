@@ -1,6 +1,7 @@
 use crate::gl_render::{self, buffer, data};
 use crate::resources::Resources;
 use std::ptr::null;
+use std::ffi::CStr;
 
 #[derive(VertexAttribPointers)]
 #[derive(Copy, Clone, Debug)]
@@ -71,6 +72,14 @@ impl Surface {
                 gl::UNSIGNED_INT,
                 0 as *const gl::types::GLvoid,
             )
+        }
+    }
+
+    pub fn uniforms_apply(&self, gl: &gl::Gl, name: &CStr, data: &[f32]) {
+        self.program.use_it();
+        unsafe {
+            let location = gl.GetUniformLocation(self.program.id(), name.as_ptr() as *const i8);
+            gl.Uniform4fv(location, 1, data.as_ptr());
         }
     }
 }

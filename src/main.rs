@@ -12,6 +12,7 @@ use gl::Gl;
 use sdl2::video::Window;
 use sdl2::{EventPump, VideoSubsystem};
 use crate::initialization::{set_gl_attr, create_window};
+use std::ffi::CString;
 
 mod debug;
 mod initialization;
@@ -45,6 +46,8 @@ fn run() -> Result<(), failure::Error> {
 
     let surface = surface::Surface::new(&res, &gl)?;
 
+    let color: Vec<f32> = vec![0.0, 1.0, 0.0, 1.0];
+    surface.uniforms_apply(&gl, &CString::new("uniColor").map_err(err_msg)?, &color);
     'main: loop {
         for event in event_pump.poll_iter() {
             match event {
