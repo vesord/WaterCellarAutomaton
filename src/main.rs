@@ -49,8 +49,6 @@ fn run() -> Result<(), failure::Error> {
 
     let surface = surface::Surface::new(&res, &gl)?;
 
-    // let color: Vec<f32> = vec![0.0, 1.0, 0.0, 1.0];
-    // surface.uniforms_apply_mat4fv(&gl, &CString::new("uniColor").map_err(err_msg)?, &color);
 
     unsafe {
         // gl.Disable(gl::CULL_FACE);
@@ -61,7 +59,7 @@ fn run() -> Result<(), failure::Error> {
         // gl.ClearDepth(1.);
     }
 
-    let mvp = MVP::new();
+    let mut mvp = MVP::new();
     surface.uniforms_apply_mat4fv(&gl, &CString::new("mvp_transform").map_err(err_msg)?, mvp.get_transform().as_slice());
 
     'main: loop {
@@ -75,6 +73,21 @@ fn run() -> Result<(), failure::Error> {
                     viewport.update_size(w, h);
                     viewport.use_it(&gl);
                 }
+                Event::KeyUp {
+                    keycode: key,
+                    ..
+                } => match key {
+                        None => (),
+                        Some(k) => {
+                            match k {
+                                sdl2::keyboard::Keycode::D => {
+                                    mvp.rotate_left();
+                                    surface.uniforms_apply_mat4fv(&gl, &CString::new("mvp_transform").map_err(err_msg)?, mvp.get_transform().as_slice());
+                                }
+                                _ => (),
+                            }
+                        }
+                    },
                 _ => {},
             }
         }

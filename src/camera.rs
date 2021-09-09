@@ -29,21 +29,12 @@ impl MVP {
         }
     }
 
+    pub fn rotate_left(&mut self) {
+        let rot: na::Matrix4<f32> = na::Isometry3::rotation(na::Vector3::y() * 3.14 / 20.).to_homogeneous();
+        self.model = self.model * rot;
+    }
+
     pub fn get_transform(&self) -> na::Matrix4<f32> {
-        println!("Model:");
-        println!("{}", self.model);
-        println!("View:");
-        println!("{}", self.view);
-        println!("Projection:");
-        println!("{}", self.projection);
-
-        let res = self.projection * self.model * self.view;
-        // let res: na::Matrix4<f32> = na::Isometry3::identity().to_homogeneous();
-
-
-        println!("Res:");
-        println!("{}", res);
-
-        res
+        self.projection * self.view * self.model
     }
 }
