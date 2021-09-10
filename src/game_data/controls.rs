@@ -1,6 +1,7 @@
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
 
+#[derive(PartialEq)]
 #[derive(Copy, Clone)]
 pub enum KeyStatus {
     Pressed,
@@ -37,10 +38,14 @@ pub struct Controls {
     pub wave_w:         KeyStatus,
     pub cam_capture:    KeyStatus,
     pub zoom:           i32,
+    mouse_left_clk: na::Vector2<i32>,
+    mouse_cur_pos: na::Vector2<i32>,
 }
 
 impl Controls {
     pub fn new() -> Controls {
+        let mouse_left_clk = na::Vector2::new(0, 0);
+        let mouse_cur_pos = na::Vector2::new(0, 0);
         Controls {
             flush:          KeyStatus::Released,
             add_water:      KeyStatus::Released,
@@ -50,6 +55,8 @@ impl Controls {
             wave_w:         KeyStatus::Released,
             cam_capture:    KeyStatus::Released,
             zoom:           0,
+            mouse_left_clk,
+            mouse_cur_pos,
         }
     }
 
@@ -70,11 +77,22 @@ impl Controls {
         }
     }
 
-    pub fn action_mouse(&mut self, key: MouseButton, status: KeyStatus) {
+    pub fn action_mouse(&mut self, key: MouseButton, x: i32, y: i32, status: KeyStatus) {
         match key {
-            MouseButton::Left => self.cam_capture = status,
+            MouseButton::Left => {
+                self.cam_capture = status;
+                if status == KeyStatus::Pressed {
+                    self.mouse_left_clk.x = x;
+                    self.mouse_left_clk.y = y;
+                }
+            },
             _ => (),
         }
+    }
+
+    pub fn action_mouse_move(&mut self, x: i32, y: i32) {
+        self.mouse_cur_pos.x = x;
+        self.mouse_cur_pos.y = y;
     }
 
     pub fn action_mouse_wheel(&mut self, value: i32) {
@@ -92,5 +110,14 @@ impl Controls {
             Actions::CamCapture => self.cam_capture = KeyStatus::Released,
             Actions::Zoom => self.zoom = 0,
         }
+    }
+
+    pub fn get_naviball(&self) -> na::Vector2<i32> {
+        self.mouse_cur_pos - self.mouse_left_clk
+    }
+
+    pub fn save_mouse_clk_pos(&mut self) {
+        self.mouse_left_clk.x = self.mouse_cur_pos.x;
+        self.mouse_left_clk.y = self.mouse_cur_pos.y;
     }
 }

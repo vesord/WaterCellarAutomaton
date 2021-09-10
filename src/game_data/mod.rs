@@ -39,23 +39,30 @@ impl GameData {
         self.viewport.update_size(w, h);
         self.viewport.use_it(&self.gl);
         self.mvp.recalc_projection(w, h);
-        self.surface.apply_uniform(&self.gl, &self.mvp, "mvp_transform").map_err(err_msg)?;
+        self.apply_uniforms().map_err(err_msg)?;
         Ok(())
     }
 
-    pub fn process_input(&mut self) {
+    pub fn process_input(&mut self) -> Result<(), failure::Error> {
         if self.controls.flush.into() { self.action_flush() };
         if self.controls.add_water.into() { self.action_add_water() };
         if self.controls.wave_n.into() { self.action_wave_n() };
         if self.controls.wave_s.into() { self.action_wave_s() };
         if self.controls.wave_w.into() { self.action_wave_w() };
         if self.controls.wave_e.into() { self.action_wave_e() };
+        if self.controls.cam_capture.into() { self.action_cam_capture().map_err(err_msg)? };
 
+        Ok(())
     }
 
     pub fn render(&self) {
         self.color_buffer.clear(&self.gl);
         self.surface.render(&self.gl);
+    }
+
+    fn apply_uniforms(&self) -> Result<(), failure::Error> {
+        self.surface.apply_uniform(&self.gl, &self.mvp, "mvp_transform").map_err(err_msg)?;
+        Ok(())
     }
 
     pub fn init(&self) {
@@ -70,16 +77,12 @@ impl GameData {
     }
 
     fn action_flush(&mut self) {
-        self.mvp.rotate_left();
-        self.surface.apply_uniform(&self.gl, &self.mvp, "mvp_transform");
         self.controls.reset_action(Actions::Flush);
         println!("FLUSH!")
     }
 
     fn action_add_water(&mut self) {
-        self.mvp.rotate_left();
-        self.surface.apply_uniform(&self.gl, &self.mvp, "mvp_transform");
-        // self.controls.reset_action(Actions::AddWater);
+        self.controls.reset_action(Actions::AddWater);
         println!("ADD WATER")
     }
 
@@ -103,5 +106,19 @@ impl GameData {
         println!("WAVE WEST")
     }
 
+    fn action_cam_capture(&mut self) -> Result<(), failure::Error> {
+        let naviball: na::Vector2<i32> = self.controls.get_naviball();
+        self.controls.save_mouse_clk_pos();
+        if naviball.x == 0 && naviball.y == 0 {
+            return Ok(())
+        }
 
+        let naviball: na::Vector2<f32> = na::Vector2::new(
+            (naviball.x) as f32 / (self.viewport.w) as f32,
+            -(naviball.y) as f32 / (self.viewport.h) as f32 );
+
+        self.mvp.recalc_model_naviball(naviball);
+        self.apply_uniforms().map_err(err_msg)?;
+        Ok(())
+    }
 }

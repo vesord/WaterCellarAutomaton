@@ -46,8 +46,9 @@ fn run() -> Result<(), failure::Error> {
                     gd.resized(w, h).map_err(err_msg)?,
                 Event::KeyUp {keycode, ..} => gd.controls.action_keyboard(keycode, KeyStatus::Released),
                 Event::KeyDown {keycode, ..} => gd.controls.action_keyboard(keycode, KeyStatus::Pressed),
-                Event::MouseButtonUp {mouse_btn, ..} => gd.controls.action_mouse(mouse_btn, KeyStatus::Released),
-                Event::MouseButtonDown {mouse_btn, ..} => gd.controls.action_mouse(mouse_btn, KeyStatus::Pressed),
+                Event::MouseButtonUp {mouse_btn, x, y, ..} => gd.controls.action_mouse(mouse_btn, x, y, KeyStatus::Released),
+                Event::MouseButtonDown {mouse_btn, x, y, ..} => gd.controls.action_mouse(mouse_btn, x, y,KeyStatus::Pressed),
+                Event::MouseMotion {x, y, ..} => gd.controls.action_mouse_move(x, y),
                 Event::MouseWheel {y, ..} => gd.controls.action_mouse_wheel(y),
                 _ => {},
             }
