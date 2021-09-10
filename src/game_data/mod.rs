@@ -58,6 +58,11 @@ impl GameData {
     pub fn render(&self) {
         self.color_buffer.clear(&self.gl);
         self.surface.render(&self.gl);
+
+        // TODO: depth buffer
+        unsafe {
+            self.gl.Clear(gl::DEPTH_BUFFER_BIT);
+        }
     }
 
     fn apply_uniforms(&self) -> Result<(), failure::Error> {
@@ -69,10 +74,12 @@ impl GameData {
         unsafe {
             // gl.Disable(gl::CULL_FACE);
             // gl.FrontFace(gl::CCW);
-            // gl.Enable(gl::DEPTH_TEST);
-            // gl.DepthFunc(gl::LEQUAL);
-            // gl.DepthRange(0., 1.);
-            // gl.ClearDepth(1.);
+
+            // TODO: depth buffer
+            self.gl.Enable(gl::DEPTH_TEST);
+            self.gl.DepthFunc(gl::LEQUAL);
+            self.gl.DepthRange(0., 1.);
+            self.gl.ClearDepth(1.);
         }
     }
 
@@ -115,7 +122,7 @@ impl GameData {
 
         let naviball: na::Vector2<f32> = na::Vector2::new(
             (naviball.x) as f32 / (self.viewport.w) as f32,
-            -(naviball.y) as f32 / (self.viewport.h) as f32 );
+            (naviball.y) as f32 / (self.viewport.h) as f32 );
 
         self.mvp.recalc_model_naviball(naviball);
         self.apply_uniforms().map_err(err_msg)?;

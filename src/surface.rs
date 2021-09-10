@@ -26,15 +26,18 @@ impl Surface {
         let program = gl_render::Program::from_res(gl, res, "surface")?;
 
         let vertices: Vec<Vertex> = vec![
-            Vertex { pos: (-0.2, -0.2, -0.2).into() },
-            Vertex { pos: ( 0.2, -0.2, -0.2).into() },
-            Vertex { pos: ( 0.2,  0.2, -0.7).into() },
-            Vertex { pos: (-0.2,  0.2, -0.7).into() },
+            Vertex { pos: (-0.7, 0.0,  0.7).into() }, // bot left
+            Vertex { pos: ( 0.7, 0.0,  0.7).into() }, // bot right
+            Vertex { pos: ( 0.7, 0.0, -0.7).into() }, // top right
+            Vertex { pos: (-0.7, 0.0, -0.7).into() }, // top left
+            Vertex { pos: ( 0.0, 0.7,  0.0).into() }, // cone top
         ];
 
         let indices: Vec<u32> = vec![
-            0, 1, 2,
-            0, 2, 3,
+            0, 1, 4,
+            1, 2, 4,
+            2, 3, 4,
+            3, 0, 4,
         ];
 
         let vbo = buffer::ArrayBuffer::new(&gl);
@@ -71,7 +74,7 @@ impl Surface {
         unsafe {
             gl.DrawElements(
                 gl::TRIANGLES,
-                6,
+                12,
                 gl::UNSIGNED_INT,
                 0 as *const gl::types::GLvoid,
             )
