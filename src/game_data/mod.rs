@@ -38,7 +38,7 @@ impl GameData {
     pub fn resized(&mut self, w: i32, h: i32) -> Result<(), failure::Error> {
         self.viewport.update_size(w, h);
         self.viewport.use_it(&self.gl);
-        self.mvp.recalc_projection(w, h);
+        self.mvp.projection_recalc(w, h);
         self.apply_uniforms().map_err(err_msg)?;
         Ok(())
     }
@@ -51,6 +51,7 @@ impl GameData {
         if self.controls.wave_w.into() { self.action_wave_w() };
         if self.controls.wave_e.into() { self.action_wave_e() };
         if self.controls.cam_capture.into() { self.action_cam_capture().map_err(err_msg)? };
+        if self.controls.zoom != 0 { self.action_zoom().map_err(err_msg)? };
 
         Ok(())
     }
@@ -124,7 +125,15 @@ impl GameData {
             (naviball.x) as f32 / (self.viewport.w) as f32,
             (naviball.y) as f32 / (self.viewport.h) as f32 );
 
-        self.mvp.recalc_model_naviball(naviball);
+        self.mvp.view_rotate_naviball(naviball);
+        self.apply_uniforms().map_err(err_msg)?;
+        Ok(())
+    }
+
+    fn action_zoom(&mut self) -> Result<(), failure::Error> {
+        let zoom: f32 = self.controls.zoom as f32 / 3.;
+        self.controls.reset_action(Actions::Zoom);
+        self.mvp.view_translate_zoom(zoom);
         self.apply_uniforms().map_err(err_msg)?;
         Ok(())
     }
