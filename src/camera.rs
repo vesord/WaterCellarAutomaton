@@ -37,4 +37,11 @@ impl MVP {
     pub fn get_transform(&self) -> na::Matrix4<f32> {
         self.projection * self.view * self.model
     }
+
+    pub fn recalc_projection(&mut self, w: i32, h: i32) {
+        let aspect: f32 = (w) as f32 / (h) as f32;
+        println!("aspect: {}", aspect);
+        self.projection = na::Perspective3::new(aspect, 3.14 / 2.0, 1.0, 1_000.0)
+            .to_homogeneous()
+    }
 }

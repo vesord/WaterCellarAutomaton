@@ -8,19 +8,15 @@ extern crate nalgebra as na;
 
 use std::path::Path;
 use failure::err_msg;
-use sdl2::event::Event;
-use gl::Gl;
-use sdl2::video::Window;
-use sdl2::{EventPump, VideoSubsystem};
+use sdl2::event::{WindowEvent, Event};
 use crate::initialization::{set_gl_attr, create_window};
-use std::ffi::CString;
-use crate::camera::MVP;
+use game_data::{GameData, controls::KeyStatus};
 
 mod debug;
 mod initialization;
-mod triangle;
 mod surface;
 mod camera;
+mod game_data;
 
 fn main() {
     if let Err(e) = run() {
@@ -37,67 +33,28 @@ fn run() -> Result<(), failure::Error> {
     let gl = gl::Gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
     let mut event_pump = sdl.event_pump().map_err(err_msg)?;
 
-    let mut viewport = gl_render::Viewport::for_window(900, 700);
-    viewport.use_it(&gl);
-
-    let color_buffer: gl_render::ColorBuffer = (0.3, 0.3, 0.5).into();
-    color_buffer.use_it(&gl);
-
     let res = resources::Resources::from_relative_exe_path(Path::new("shaders"))?;
 
-    let triangle = triangle::Triangle::new(&res, &gl)?;
-
-    let surface = surface::Surface::new(&res, &gl)?;
-
-
-    unsafe {
-        // gl.Disable(gl::CULL_FACE);
-        // gl.FrontFace(gl::CCW);
-        // gl.Enable(gl::DEPTH_TEST);
-        // gl.DepthFunc(gl::LEQUAL);
-        // gl.DepthRange(0., 1.);
-        // gl.ClearDepth(1.);
-    }
-
-    let mut mvp = MVP::new();
-    surface.uniforms_apply_mat4fv(&gl, &CString::new("mvp_transform").map_err(err_msg)?, mvp.get_transform().as_slice());
+    let mut gd = GameData::new(&gl, &res).map_err(err_msg)?;
+    gd.init();
 
     'main: loop {
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit {..} => break 'main,
-                Event::Window {
-                    win_event: sdl2::event::WindowEvent::Resized(w, h),
-                    ..
-                } => {
-                    viewport.update_size(w, h);
-                    viewport.use_it(&gl);
-                }
-                Event::KeyUp {
-                    keycode: key,
-                    ..
-                } => match key {
-                        None => (),
-                        Some(k) => {
-                            match k {
-                                sdl2::keyboard::Keycode::D => {
-                                    mvp.rotate_left();
-                                    surface.uniforms_apply_mat4fv(&gl, &CString::new("mvp_transform").map_err(err_msg)?, mvp.get_transform().as_slice());
-                                }
-                                _ => (),
-                            }
-                        }
-                    },
+                Event::Window { win_event: WindowEvent::Resized(w, h), .. } =>
+                    gd.resized(w, h).map_err(err_msg)?,
+                Event::KeyUp {keycode, ..} => gd.controls.action_keyboard(keycode, KeyStatus::Released),
+                Event::KeyDown {keycode, ..} => gd.controls.action_keyboard(keycode, KeyStatus::Pressed),
+                Event::MouseButtonUp {mouse_btn, ..} => gd.controls.action_mouse(mouse_btn, KeyStatus::Released),
+                Event::MouseButtonDown {mouse_btn, ..} => gd.controls.action_mouse(mouse_btn, KeyStatus::Pressed),
+                Event::MouseWheel {y, ..} => gd.controls.action_mouse_wheel(y),
                 _ => {},
             }
         }
-
-        color_buffer.clear(&gl);
-        // triangle.render(&gl);
-        surface.render(&gl);
-
+        gd.process_input();
+        gd.render();
         window.gl_swap_window();
     }
-
     Ok(())
 }

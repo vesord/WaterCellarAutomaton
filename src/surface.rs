@@ -1,7 +1,10 @@
 use crate::gl_render::{self, buffer, data};
 use crate::resources::Resources;
-use std::ptr::null;
-use std::ffi::CStr;
+use std::ffi::{CString};
+use crate::camera::MVP;
+use failure::err_msg;
+use gl_render::uniform;
+
 
 #[derive(VertexAttribPointers)]
 #[derive(Copy, Clone, Debug)]
@@ -28,11 +31,6 @@ impl Surface {
             Vertex { pos: ( 0.2,  0.2, 0.7).into() },
             Vertex { pos: (-0.2,  0.2, 0.7).into() },
         ];
-
-        // Vertex { pos: (-0.2, -0.2, 0.0).into() },
-        // Vertex { pos: ( 0.2, -0.2, 0.0).into() },
-        // Vertex { pos: ( 0.2,  0.2, 0.0).into() },
-        // Vertex { pos: (-0.2,  0.2, 0.0).into() },
 
         let indices: Vec<u32> = vec![
             0, 1, 2,
@@ -79,15 +77,17 @@ impl Surface {
             )
         }
     }
+}
 
-    pub fn uniforms_apply_mat4fv(&self, gl: &gl::Gl, name: &CStr, data:  &[f32]) {
+impl uniform::HasUniform<MVP> for Surface {
+    fn apply_uniform(&self, gl: &gl::Gl, data: &MVP, name: &str) -> Result<(), failure::Error> {
         self.program.use_it();
+        let name_cstr: CString = CString::new(name).map_err(err_msg)?;
+        let matrix: *const f32 = data.get_transform().as_slice().as_ptr();
         unsafe {
-            let location = gl.GetUniformLocation(self.program.id(), name.as_ptr() as *const i8);
-            gl.UniformMatrix4fv(location, 1, gl::FALSE, data.as_ptr());
+            let location = gl.GetUniformLocation(self.program.id(), name_cstr.as_ptr() as *const i8);
+            gl.UniformMatrix4fv(location, 1, gl::FALSE, matrix);
         }
-
-        let v = Vec::from(data);
-        println!("V: {:?}", v);
+        Ok(())
     }
 }
