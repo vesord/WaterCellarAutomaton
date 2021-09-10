@@ -26,10 +26,10 @@ impl Surface {
         let program = gl_render::Program::from_res(gl, res, "surface")?;
 
         let vertices: Vec<Vertex> = vec![
-            Vertex { pos: (-0.2, -0.2, 0.2).into() },
-            Vertex { pos: ( 0.2, -0.2, 0.2).into() },
-            Vertex { pos: ( 0.2,  0.2, 0.7).into() },
-            Vertex { pos: (-0.2,  0.2, 0.7).into() },
+            Vertex { pos: (-0.2, -0.2, -0.2).into() },
+            Vertex { pos: ( 0.2, -0.2, -0.2).into() },
+            Vertex { pos: ( 0.2,  0.2, -0.7).into() },
+            Vertex { pos: (-0.2,  0.2, -0.7).into() },
         ];
 
         let indices: Vec<u32> = vec![
