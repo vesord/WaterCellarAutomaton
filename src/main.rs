@@ -8,13 +8,12 @@ extern crate nalgebra as na;
 
 use std::path::Path;
 use failure::err_msg;
-use sdl2::event::{WindowEvent, Event};
-use crate::initialization::{set_gl_attr, create_window};
-use game_data::{GameData, controls::KeyStatus};
+use sdl2::event::{Event, WindowEvent};
+use game_data::{controls::KeyStatus, GameData};
+use crate::initialization::{create_window, set_gl_attr};
 
 mod debug;
 mod initialization;
-mod surface;
 mod camera;
 mod game_data;
 

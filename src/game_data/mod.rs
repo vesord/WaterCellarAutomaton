@@ -1,17 +1,21 @@
-use gl_render::{Viewport, ColorBuffer};
-use crate::surface::Surface;
-use crate::camera::MVP;
-use resources::Resources;
 use failure::err_msg;
+use gl_render::{ColorBuffer, Viewport};
 use gl_render::uniform::HasUniform;
-use crate::game_data::controls::{Controls, Actions};
+use resources::Resources;
+use surface::Surface;
+use crate::camera::MVP;
+use controls::{Actions, Controls};
+use crate::game_data::grid::Grid;
 
 pub mod controls;
+mod surface;
+mod grid;
 
 pub struct GameData {
     gl: gl::Gl,
     viewport: Viewport,
     surface: Surface,
+    grid: Grid,
     mvp: MVP,
     color_buffer: ColorBuffer,
     pub controls: Controls,
@@ -32,7 +36,9 @@ impl GameData {
 
         let controls = Controls::new();
 
-        Ok(GameData { gl: gl.clone(), viewport, surface, mvp, color_buffer, controls })
+        let grid = Grid::new(100);
+
+        Ok(GameData { gl: gl.clone(), viewport, surface, grid, mvp, color_buffer, controls })
     }
 
     pub fn resized(&mut self, w: i32, h: i32) -> Result<(), failure::Error> {
@@ -85,10 +91,7 @@ impl GameData {
     }
 
     pub fn set_grid(&mut self) -> Result<(), failure::Error> {
-        let mut grid: Vec<Vec<f32>> = vec![vec![0.; 5]; 5];
-        grid[2][2] = 0.7;
-        self.surface.set_grid(&grid)?;
-        Ok(())
+        self.surface.set_grid(self.grid.get_data())
     }
 
     fn action_flush(&mut self) {

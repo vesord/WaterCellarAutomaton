@@ -58,9 +58,10 @@ impl Surface {
         vbo.static_draw_data(&vertices);
         vbo.unbind();
 
-        let ebo = buffer::ElementArrayBuffer::new(&gl);
+        let mut ebo = buffer::ElementArrayBuffer::new(&gl);
         ebo.bind();
         ebo.static_draw_data(&indices);
+        ebo.set_elem_count(indices.len());
         ebo.unbind();
 
         let vao = buffer::VertexArray::new(&gl);
@@ -87,7 +88,7 @@ impl Surface {
         unsafe {
             gl.DrawElements(
                 gl::TRIANGLES,
-                3 * 2 * 4 * 4,
+                self.ebo.get_elem_count() as i32,
                 gl::UNSIGNED_INT,
                 0 as *const gl::types::GLvoid,
             )
@@ -100,6 +101,7 @@ impl Surface {
         self.vbo.unbind();
 
         self.ebo.bind();
+        self.ebo.set_elem_count(indices.len());
         self.ebo.static_draw_data(&indices);
         self.ebo.unbind();
     }
@@ -107,10 +109,10 @@ impl Surface {
     pub fn set_grid(&mut self, grid: &[Vec<f32>]) -> Result<(), failure::Error> {
         let vertices: Vec<Vertex> = generate_vertex_grid(grid)?;
         let indices: Vec<u32> = generate_indices(grid.len())?;
-        for v in &vertices {
-            println!("{}", *v);
-        }
-        println!("Indices: {:?}", indices);
+        // for v in &vertices {
+        //     println!("{}", *v);
+        // }
+        // println!("Indices: {:?}", indices);
         self.update_buffers(&vertices, &indices);
         Ok(())
     }

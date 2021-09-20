@@ -21,6 +21,7 @@ pub type ElementArrayBuffer = Buffer<BufferTypeElementArray>;
 pub struct Buffer<B: BufferType> {
     gl: gl::Gl,
     vbo: gl::types::GLuint,
+    elem_count: usize,
     _marker: ::std::marker::PhantomData<B>,
 }
 
@@ -34,6 +35,7 @@ impl<B: BufferType> Buffer<B> {
         Buffer {
             gl: gl.clone(),
             vbo,
+            elem_count: 0,
             _marker: ::std::marker::PhantomData,
         }
     }
@@ -59,6 +61,14 @@ impl<B: BufferType> Buffer<B> {
                 gl::STATIC_DRAW, // usage
             );
         }
+    }
+
+    pub fn set_elem_count(&mut self, count: usize) {
+        self.elem_count = count;
+    }
+
+    pub fn get_elem_count(&self) -> usize {
+        self.elem_count
     }
 }
 
