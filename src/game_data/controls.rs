@@ -24,7 +24,6 @@ pub enum Actions {
     WaveN,
     WaveE,
     WaveW,
-    CamCapture,
     Zoom,
 }
 
@@ -107,7 +106,6 @@ impl Controls {
             Actions::WaveS    => self.wave_s     = KeyStatus::Released,
             Actions::WaveE    => self.wave_e     = KeyStatus::Released,
             Actions::WaveW    => self.wave_w     = KeyStatus::Released,
-            Actions::CamCapture => self.cam_capture = KeyStatus::Released,
             Actions::Zoom => self.zoom = 0,
         }
     }

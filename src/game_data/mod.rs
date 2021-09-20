@@ -84,6 +84,13 @@ impl GameData {
         }
     }
 
+    pub fn set_grid(&mut self) -> Result<(), failure::Error> {
+        let mut grid: Vec<Vec<f32>> = vec![vec![0.; 5]; 5];
+        grid[2][2] = 0.7;
+        self.surface.set_grid(&grid)?;
+        Ok(())
+    }
+
     fn action_flush(&mut self) {
         self.controls.reset_action(Actions::Flush);
         println!("FLUSH!")

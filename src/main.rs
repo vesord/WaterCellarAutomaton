@@ -38,6 +38,9 @@ fn run() -> Result<(), failure::Error> {
     let mut gd = GameData::new(&gl, &res).map_err(err_msg)?;
     gd.init();
 
+    gd.set_grid()?;
+
+
     'main: loop {
         for event in event_pump.poll_iter() {
             match event {
@@ -53,7 +56,7 @@ fn run() -> Result<(), failure::Error> {
                 _ => {},
             }
         }
-        gd.process_input();
+        gd.process_input()?;
         gd.render();
         window.gl_swap_window();
     }

@@ -15,12 +15,12 @@ impl MVP {
 
         let model = na::Isometry3::identity();
 
-        let mut model: na::Matrix4<f32> = model.to_homogeneous() * 5.;
+        let mut model: na::Matrix4<f32> = model.to_homogeneous() * 1.;
         model[15] = 1.;
 
         let view_rotation: na::Matrix4<f32> = na::Isometry3::rotation(na::Vector3::y() * 3.14 / 4.).to_homogeneous();
         let view_rotation = na::Isometry3::rotation(na::Vector3::x() * 3.14 / 4.).to_homogeneous() * view_rotation;
-        let view_translation: na::Matrix4<f32> = na::Isometry3::translation(0., -1., -8.).to_homogeneous();
+        let view_translation: na::Matrix4<f32> = na::Isometry3::translation(0., -1., -2.).to_homogeneous();
 
         // let projection: na::Matrix4<f32> = na::Perspective3::new(9.0 / 7.0, 3.14 / 2.0, 1.0, 1_000.0)
         //     .to_homogeneous();

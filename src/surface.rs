@@ -4,6 +4,7 @@ use std::ffi::{CString};
 use crate::camera::MVP;
 use failure::err_msg;
 use gl_render::uniform;
+use std::fmt::{Display, Formatter};
 
 
 #[derive(VertexAttribPointers)]
@@ -14,10 +15,22 @@ struct Vertex {
     pos: data::f32_f32_f32,
 }
 
+impl From<(f32, f32, f32)> for Vertex {
+    fn from(elem: (f32, f32, f32)) -> Self {
+        Vertex { pos: elem.into() }
+    }
+}
+
+impl Display for Vertex {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {}, {}), ", self.pos.d0, self.pos.d1, self.pos.d2)
+    }
+}
+
 pub struct Surface {
     program: gl_render::Program,
-    _vbo: buffer::ArrayBuffer,
-    _ebo: buffer::ElementArrayBuffer,
+    vbo: buffer::ArrayBuffer,
+    ebo: buffer::ElementArrayBuffer,
     vao: buffer::VertexArray,
 }
 
@@ -26,11 +39,11 @@ impl Surface {
         let program = gl_render::Program::from_res(gl, res, "surface")?;
 
         let vertices: Vec<Vertex> = vec![
-            Vertex { pos: (-0.7, 0.0,  0.7).into() }, // bot left
-            Vertex { pos: ( 0.7, 0.0,  0.7).into() }, // bot right
-            Vertex { pos: ( 0.7, 0.0, -0.7).into() }, // top right
-            Vertex { pos: (-0.7, 0.0, -0.7).into() }, // top left
-            Vertex { pos: ( 0.0, 0.7,  0.0).into() }, // cone top
+            (-0.7, 0.0,  0.7).into(), // bot left
+            ( 0.7, 0.0,  0.7).into(), // bot right
+            ( 0.7, 0.0, -0.7).into(), // top right
+            (-0.7, 0.0, -0.7).into(), // top left
+            ( 0.0, 0.5,  0.0).into(), // cone top
         ];
 
         let indices: Vec<u32> = vec![
@@ -61,8 +74,8 @@ impl Surface {
 
         Ok(Surface {
             program,
-            _vbo: vbo,
-            _ebo: ebo,
+            vbo,
+            ebo,
             vao,
         })
     }
@@ -74,12 +87,68 @@ impl Surface {
         unsafe {
             gl.DrawElements(
                 gl::TRIANGLES,
-                12,
+                3 * 2 * 4 * 4,
                 gl::UNSIGNED_INT,
                 0 as *const gl::types::GLvoid,
             )
         }
     }
+
+    fn update_buffers(&mut self, vertices: &[Vertex], indices: &[u32]) {
+        self.vbo.bind();
+        self.vbo.static_draw_data(vertices);
+        self.vbo.unbind();
+
+        self.ebo.bind();
+        self.ebo.static_draw_data(&indices);
+        self.ebo.unbind();
+    }
+
+    pub fn set_grid(&mut self, grid: &[Vec<f32>]) -> Result<(), failure::Error> {
+        let vertices: Vec<Vertex> = generate_vertex_grid(grid)?;
+        let indices: Vec<u32> = generate_indices(grid.len())?;
+        for v in &vertices {
+            println!("{}", *v);
+        }
+        println!("Indices: {:?}", indices);
+        self.update_buffers(&vertices, &indices);
+        Ok(())
+    }
+}
+
+fn generate_vertex_grid(grid: &[Vec<f32>]) -> Result<Vec<Vertex>, failure::Error> {
+    assert!(grid.len() > 1);
+    println!("grid: {:?}", grid);
+
+    let step = 2. / (grid.len() - 1) as f32;
+    let mut coord: (f32, f32) = (-1. - step, -1. - step);   // (x, -z)
+    let mut vertices: Vec<Vertex> = vec![];
+
+    for row in grid {
+        assert_eq!(row.len(), grid.len());
+        coord.1 += step;
+        for elem in row {
+            coord.0 += step;
+            vertices.push((coord.0, *elem, coord.1).into());
+        }
+        coord.0 = -1. - step;
+    }
+    Ok(vertices)
+}
+
+fn generate_indices(grid_size: usize) -> Result<Vec<u32>, failure::Error> {
+    let mut indices: Vec<u32> = vec![];
+    for i in 0..(grid_size - 1) {
+        for j in 0..(grid_size - 1) {
+            indices.push((i * grid_size + j) as u32);
+            indices.push((i * grid_size + j + 1) as u32);
+            indices.push((i * grid_size + j + 1 + grid_size) as u32);
+            indices.push((i * grid_size + j) as u32);
+            indices.push((i * grid_size + j + grid_size) as u32);
+            indices.push((i * grid_size + j + grid_size + 1) as u32);
+        }
+    }
+    Ok(indices)
 }
 
 impl uniform::HasUniform<MVP> for Surface {
