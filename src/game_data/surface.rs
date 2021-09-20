@@ -36,7 +36,7 @@ pub struct Surface {
 
 impl Surface {
     pub fn new(res: &Resources, gl: &gl::Gl) -> Result<Surface, failure::Error> {
-        let program = gl_render::Program::from_res(gl, res, "surface")?;
+        let program = gl_render::Program::from_res(gl, res, "shaders/surface")?;
 
         let vertices: Vec<Vertex> = vec![
             (-0.7, 0.0,  0.7).into(), // bot left
@@ -109,10 +109,6 @@ impl Surface {
     pub fn set_grid(&mut self, grid: &[Vec<f32>]) -> Result<(), failure::Error> {
         let vertices: Vec<Vertex> = generate_vertex_grid(grid)?;
         let indices: Vec<u32> = generate_indices(grid.len())?;
-        // for v in &vertices {
-        //     println!("{}", *v);
-        // }
-        // println!("Indices: {:?}", indices);
         self.update_buffers(&vertices, &indices);
         Ok(())
     }
@@ -120,7 +116,6 @@ impl Surface {
 
 fn generate_vertex_grid(grid: &[Vec<f32>]) -> Result<Vec<Vertex>, failure::Error> {
     assert!(grid.len() > 1);
-    println!("grid: {:?}", grid);
 
     let step = 2. / (grid.len() - 1) as f32;
     let mut coord: (f32, f32) = (-1. - step, -1. - step);   // (x, -z)

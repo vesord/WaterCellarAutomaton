@@ -22,11 +22,11 @@ pub struct GameData {
 }
 
 impl GameData {
-    pub fn new(gl: &gl::Gl, res: &Resources) -> Result<GameData, failure::Error> {
-        let color_buffer: gl_render::ColorBuffer = (0.3, 0.3, 0.5).into();
+    pub fn new(gl: &gl::Gl, res: &Resources, grid_path: &str) -> Result<GameData, failure::Error> {
+        let color_buffer: gl_render::ColorBuffer = (0.3, 0.3, 0.5).into(); // TODO add to config
         color_buffer.use_it(&gl);
 
-        let viewport = gl_render::Viewport::for_window(900, 700);
+        let viewport = gl_render::Viewport::for_window(900, 700); // TODO add size to config
         viewport.use_it(&gl);
 
         let surface = Surface::new(&res, &gl)?;
@@ -36,7 +36,7 @@ impl GameData {
 
         let controls = Controls::new();
 
-        let grid = Grid::new(100);
+        let grid = Grid::new(&res, grid_path, 100)?;  // TODO: add size to config
 
         Ok(GameData { gl: gl.clone(), viewport, surface, grid, mvp, color_buffer, controls })
     }
