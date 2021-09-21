@@ -17,6 +17,7 @@ mod debug;
 mod initialization;
 mod camera;
 mod game_data;
+mod types;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

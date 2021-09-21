@@ -87,7 +87,7 @@ impl Surface {
 
         unsafe {
             gl.DrawElements(
-                gl::TRIANGLES,
+                gl::LINE_STRIP,
                 self.ebo.get_elem_count() as i32,
                 gl::UNSIGNED_INT,
                 0 as *const gl::types::GLvoid,
