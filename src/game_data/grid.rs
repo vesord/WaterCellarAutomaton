@@ -4,7 +4,13 @@ use std::ffi::CString;
 use crate::types::Point3;
 
 pub struct Grid {
+    poles: Vec<Point3>,
     data: Vec<Vec<f32>>,
+}
+
+pub enum GridingAlgo {
+    RadialBasisFunction,
+    Kriging,
 }
 
 #[derive(Fail, Debug)]
@@ -24,19 +30,11 @@ pub enum Error {
 }
 
 impl Grid {
-    pub fn new(res: &Resources, grid_path: &str, size: usize) -> Result<Grid, failure::Error> {
-        let mut empty_grid: Vec<Vec<f32>> = vec![vec![0.; size as usize]; size as usize];
+    pub fn new(res: &Resources, grid_path: &str, size: usize, griding_algo: GridingAlgo) -> Result<Grid, failure::Error> {
         let input_array = Grid::get_user_grid(res, grid_path)?;
-
-        let input_array_zero_edges = Grid::add_zero_edge_to_user_grid(&input_array, size);
-
-        let grid = Grid::radial_basis_function_griding(size, &input_array);
-
-        //
-        // // TODO: remove this
-        // empty_grid[49][49] = 0.7;
-
+        let grid = Grid::make_grid(size, &input_array, griding_algo);
         Ok(Grid {
+            poles: input_array,
             data: grid,
         })
     }
@@ -60,39 +58,30 @@ impl Grid {
         Ok(grid)
     }
 
-    fn add_zero_edge_to_user_grid(points: &Vec<Point3>, size: usize) -> Vec<Point3> {
-        let mut grid_zeroed: Vec<Point3> = Vec::with_capacity(points.len() + (size - 1) * 4);
-        let step = 2. / size as f32;
-        let mut coord = -1. - step;
-        for i in 0..size {
-            coord += step;
-            grid_zeroed.push((coord, 0., -1.).into());
-            grid_zeroed.push((-1., 0., coord).into());
-            grid_zeroed.push((coord, 0., 1.).into());
-            grid_zeroed.push((1., 0., coord).into());
-        }
-        for user_point in points {
-            grid_zeroed.push(*user_point);
-        }
-        grid_zeroed
-    }
-
-    // Makes isomorphic 2d grid on [-1;1] through input points. Edges are zeroed.
-    fn radial_basis_function_griding(size: usize, poles: &Vec<Point3>) -> Vec<Vec<f32>> {
+    // Makes isomorphic size*size 2d grid on [-1;1] through input points (poles)
+    fn make_grid(size: usize, poles: &Vec<Point3>, griding_algo: GridingAlgo) -> Vec<Vec<f32>> {
         let step: f32 = 2. / size as f32;
-        let mut cur_point: Point3 = (-1. - step, 0., -1. - step).into(); // (x, -z)
+        let griding_function = Grid::match_griding_function(griding_algo);
+        let mut cur_point: Point3 = (-1. - step, 0., -1. - step).into();
         let mut grid: Vec<Vec<f32>> = vec![vec![0.; size]; size];
 
         for mut row in &mut grid {
             cur_point.z += step;
             for mut elem in row {
                 cur_point.x += step;
-                *elem = Grid::rbf_calculate_point(&cur_point, poles);
+                *elem = griding_function(&cur_point, poles);
                 println!("Elem: {} ", *elem);
             }
             cur_point.x = -1. - step;
         }
         grid
+    }
+
+    fn match_griding_function(griding_algo: GridingAlgo) -> fn(&Point3, &Vec<Point3>) -> f32 {
+        match griding_algo {
+            GridingAlgo::Kriging => Grid::kriging_calculate_point,
+            GridingAlgo::RadialBasisFunction => Grid::rbf_calculate_point,
+        }
     }
 
     fn rbf_calculate_point(cur_point: &Point3, poles: &Vec<Point3>) -> f32 {
@@ -113,7 +102,7 @@ impl Grid {
         y_value
     }
 
-    fn krigging_calculate_point(cur_point: &Point3, poles: &Vec<Point3>) -> f32 {
+    fn kriging_calculate_point(cur_point: &Point3, poles: &Vec<Point3>) -> f32 {
         let mut rev_distances: Vec<f32> = Vec::with_capacity(poles.len());
         let mut sum_rev_dists: f32 = 0.;
         for pole in poles {

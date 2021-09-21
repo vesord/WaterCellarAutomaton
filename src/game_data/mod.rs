@@ -5,7 +5,7 @@ use resources::Resources;
 use surface::Surface;
 use crate::camera::MVP;
 use controls::{Actions, Controls};
-use crate::game_data::grid::Grid;
+use crate::game_data::grid::{Grid, GridingAlgo};
 
 pub mod controls;
 mod surface;
@@ -36,7 +36,7 @@ impl GameData {
 
         let controls = Controls::new();
 
-        let grid = Grid::new(&res, grid_path, 100)?;  // TODO: add size to config
+        let grid = Grid::new(&res, grid_path, 100, GridingAlgo::RadialBasisFunction)?;  // TODO: add size to config
 
         Ok(GameData { gl: gl.clone(), viewport, surface, grid, mvp, color_buffer, controls })
     }
