@@ -1,10 +1,9 @@
 use resources::Resources;
 use failure::err_msg;
 use std::ffi::CString;
-use crate::types::Point3;
 
 pub struct Grid {
-    poles: Vec<Point3>,
+    poles: Vec<na::Vector3<f32>>,
     data: Vec<Vec<f32>>,
 }
 
@@ -44,7 +43,7 @@ impl Grid {
         &self.data
     }
 
-    fn get_user_grid(res: &Resources, grid_path: &str) -> Result<Vec<Point3>, failure::Error> {
+    fn get_user_grid(res: &Resources, grid_path: &str) -> Result<Vec<na::Vector3<f32>>, failure::Error> {
         let grid_file = res.load_cstring(grid_path).map_err(err_msg)?;
         let grid_str = grid_str2file(grid_file, grid_path)?;
         // println!("grid str: {:?}", grid_str);
@@ -54,21 +53,21 @@ impl Grid {
         // println!("grid points str: {:?}", grid_points_str);
         let grid_points_f32 = grid_points_str2points_f32(&grid_points_str)?;
         // println!("grid points f32: {:?}", grid_points_f32);
-        let grid: Vec<Point3> = grid_points_f32to_grid(&grid_points_f32)?;
+        let grid: Vec<na::Vector3<f32>> = grid_points_f32to_grid(&grid_points_f32)?;
         println!("grid: {:?}", grid);
         Ok(grid)
     }
 
-    fn add_zeros_to_edges(input: &Vec<Point3>, count: i32) -> Vec<Point3> {
-        let mut input_zeroed: Vec<Point3> = Vec::with_capacity((count * 4) as usize + input.len());
+    fn add_zeros_to_edges(input: &Vec<na::Vector3<f32>>, count: i32) -> Vec<na::Vector3<f32>> {
+        let mut input_zeroed: Vec<na::Vector3<f32>> = Vec::with_capacity((count * 4) as usize + input.len());
         let step = 2. / count as f32;
         let mut coord = 0.;
         for i in 0..count {
             coord += step;
-            input_zeroed.push((-1. + coord, 0., -1.).into());
-            input_zeroed.push((1., 0., -1. + coord).into());
-            input_zeroed.push((1. - coord, 0., 1.).into());
-            input_zeroed.push((-1., 0., 1. - coord).into());
+            input_zeroed.push(na::Vector3::new(-1. + coord, 0., -1.));
+            input_zeroed.push(na::Vector3::new(1., 0., -1. + coord));
+            input_zeroed.push(na::Vector3::new(1. - coord, 0., 1.));
+            input_zeroed.push(na::Vector3::new(-1., 0., 1. - coord));
         }
         for elem in input {
             input_zeroed.push(*elem);
@@ -77,10 +76,10 @@ impl Grid {
     }
 
     // Makes isomorphic size*size 2d grid on [-1;1] through input points (poles)
-    fn make_grid(size: usize, poles: &Vec<Point3>, griding_algo: GridingAlgo) -> Vec<Vec<f32>> {
+    fn make_grid(size: usize, poles: &Vec<na::Vector3<f32>>, griding_algo: GridingAlgo) -> Vec<Vec<f32>> {
         let step: f32 = 2. / size as f32;
         let griding_function = Grid::match_griding_function(griding_algo);
-        let mut cur_point: Point3 = (-1. - step, 0., -1. - step).into();
+        let mut cur_point: na::Vector3<f32> = na::Vector3::new(-1. - step, 0., -1. - step);
         let mut grid: Vec<Vec<f32>> = vec![vec![0.; size]; size];
 
         for mut row in &mut grid {
@@ -100,18 +99,20 @@ impl Grid {
         grid
     }
 
-    fn match_griding_function(griding_algo: GridingAlgo) -> fn(&Point3, &Vec<Point3>) -> f32 {
+    fn match_griding_function(griding_algo: GridingAlgo) -> fn(&na::Vector3<f32>, &Vec<na::Vector3<f32>>) -> f32 {
         match griding_algo {
             GridingAlgo::Kriging => Grid::kriging_calculate_point,
             GridingAlgo::RadialBasisFunction => Grid::rbf_calculate_point,
         }
     }
 
-    fn rbf_calculate_point(cur_point: &Point3, poles: &Vec<Point3>) -> f32 {
+    fn rbf_calculate_point(cur_point: &na::Vector3<f32>, poles: &Vec<na::Vector3<f32>>) -> f32 {
         let mut rev_distances: Vec<f32> = Vec::with_capacity(poles.len());
 
+
+
         for pole in poles {
-            let dist = max(cur_point.distance_xz(pole), f32::EPSILON * 100.);
+            let dist = max(length_on_xz(cur_point, pole), f32::EPSILON * 100.);
             rev_distances.push(1. / dist);
         }
 
@@ -138,11 +139,11 @@ impl Grid {
         y_value
     }
 
-    fn kriging_calculate_point(cur_point: &Point3, poles: &Vec<Point3>) -> f32 {
+    fn kriging_calculate_point(cur_point: &na::Vector3<f32>, poles: &Vec<na::Vector3<f32>>) -> f32 {
         let mut rev_distances: Vec<f32> = Vec::with_capacity(poles.len());
         let mut sum_rev_dists: f32 = 0.;
         for pole in poles {
-            let rev_dist = 1. / max(cur_point.distance_xz(pole), f32::MIN_POSITIVE * 100.);
+            let rev_dist = 1. / max(length_on_xz(cur_point, pole), f32::MIN_POSITIVE * 100.);
             sum_rev_dists += rev_dist;
             rev_distances.push(rev_dist);
         }
@@ -162,6 +163,10 @@ fn max(a: f32, b: f32) -> f32 {
     else {
         b
     }
+}
+
+fn length_on_xz(p1: &na::Vector3<f32>, p2: &na::Vector3<f32>) -> f32 {
+    ((p1.x - p2.x).powf(2.) + (p1.z - p2.z).powf(2.)).sqrt()
 }
 
 fn grid_str2file(str: CString, filename: &str) -> Result<String, Error> {
@@ -188,7 +193,7 @@ fn grid_points_str2points_f32(points: &Vec<Vec<&str>>) -> Result<Vec<Vec<f32>>, 
     }).collect::<Result<Vec<Vec<f32>>, Error>>()
 }
 
-fn grid_points_f32to_grid(points: &Vec<Vec<f32>>) -> Result<Vec<Point3>, Error> {
+fn grid_points_f32to_grid(points: &Vec<Vec<f32>>) -> Result<Vec<na::Vector3<f32>>, Error> {
     points.iter().map(|point| {
         let x = match point[0] {
             x if x >= -1. && x <= 1. => Ok(x),
@@ -202,6 +207,6 @@ fn grid_points_f32to_grid(points: &Vec<Vec<f32>>) -> Result<Vec<Point3>, Error> 
             z if z >= -1. && z <= 1. => Ok(z),
             _ => Err(Error::ComponentZNotValid { name: point[2].to_string() }),
         }?;
-        Ok((x, y, z).into())
-    }).collect::<Result<Vec<Point3>, Error>>()
+        Ok(na::Vector3::new(x, y, z))
+    }).collect::<Result<Vec<na::Vector3<f32>>, Error>>()
 }

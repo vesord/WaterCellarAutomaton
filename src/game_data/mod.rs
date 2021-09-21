@@ -36,7 +36,7 @@ impl GameData {
 
         let controls = Controls::new();
 
-        let grid = Grid::new(&res, grid_path, 50, GridingAlgo::RadialBasisFunction)?;  // TODO: add size to config (200 in subj)
+        let grid = Grid::new(&res, grid_path, 200, GridingAlgo::RadialBasisFunction)?;  // TODO: add size to config (200 in subj)
 
         Ok(GameData { gl: gl.clone(), viewport, surface, grid, mvp, color_buffer, controls })
     }
@@ -69,7 +69,7 @@ impl GameData {
 
     pub fn render(&self) {
         self.color_buffer.clear(&self.gl);
-        self.surface.render(&self.gl, gl::LINE_STRIP); // TODO: add key for changing render mode
+        self.surface.render(&self.gl, gl::TRIANGLES); // TODO: add key for changing render mode
 
         // TODO: depth buffer
         unsafe {
