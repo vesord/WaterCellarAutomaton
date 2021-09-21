@@ -24,7 +24,7 @@ impl MVP {
 
         // let projection: na::Matrix4<f32> = na::Perspective3::new(9.0 / 7.0, 3.14 / 2.0, 1.0, 1_000.0)
         //     .to_homogeneous();
-        let projection: na::Matrix4<f32> = na::Orthographic3::new(-1., 1., -2., 0., -30., 30.)
+        let projection: na::Matrix4<f32> = na::Orthographic3::new(-1.41, 1.41, -2., 0., -30., 30.)
             .to_homogeneous();
 
         MVP {

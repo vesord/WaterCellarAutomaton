@@ -81,13 +81,13 @@ impl Surface {
         })
     }
 
-    pub fn render(&self, gl: &gl::Gl) {
+    pub fn render(&self, gl: &gl::Gl, mode: gl::types::GLenum) {
         self.program.use_it();
         self.vao.bind();
 
         unsafe {
             gl.DrawElements(
-                gl::LINE_STRIP,
+                mode,
                 self.ebo.get_elem_count() as i32,
                 gl::UNSIGNED_INT,
                 0 as *const gl::types::GLvoid,

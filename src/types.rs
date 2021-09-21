@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use std::iter::FromIterator;
 
 #[derive(Debug)]
 #[derive(Copy, Clone)]
@@ -32,3 +33,4 @@ impl Display for Point3 {
         write!(f, "({}, {}, {})", self.x, self.y, self.z)
     }
 }
+

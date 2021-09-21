@@ -32,7 +32,8 @@ pub enum Error {
 impl Grid {
     pub fn new(res: &Resources, grid_path: &str, size: usize, griding_algo: GridingAlgo) -> Result<Grid, failure::Error> {
         let input_array = Grid::get_user_grid(res, grid_path)?;
-        let grid = Grid::make_grid(size, &input_array, griding_algo);
+        let input_array = Grid::add_zeros_to_edges(&input_array, 10);    // TODO: config
+        let grid = Grid::make_grid(size, &input_array, GridingAlgo::RadialBasisFunction);
         Ok(Grid {
             poles: input_array,
             data: grid,
@@ -58,6 +59,23 @@ impl Grid {
         Ok(grid)
     }
 
+    fn add_zeros_to_edges(input: &Vec<Point3>, count: i32) -> Vec<Point3> {
+        let mut input_zeroed: Vec<Point3> = Vec::with_capacity((count * 4) as usize + input.len());
+        let step = 2. / count as f32;
+        let mut coord = 0.;
+        for i in 0..count {
+            coord += step;
+            input_zeroed.push((-1. + coord, 0., -1.).into());
+            input_zeroed.push((1., 0., -1. + coord).into());
+            input_zeroed.push((1. - coord, 0., 1.).into());
+            input_zeroed.push((-1., 0., 1. - coord).into());
+        }
+        for elem in input {
+            input_zeroed.push(*elem);
+        }
+        input_zeroed
+    }
+
     // Makes isomorphic size*size 2d grid on [-1;1] through input points (poles)
     fn make_grid(size: usize, poles: &Vec<Point3>, griding_algo: GridingAlgo) -> Vec<Vec<f32>> {
         let step: f32 = 2. / size as f32;
@@ -70,7 +88,12 @@ impl Grid {
             for mut elem in row {
                 cur_point.x += step;
                 *elem = griding_function(&cur_point, poles);
-                println!("Elem: {} ", *elem);
+                if cur_point.x < -0.5 + 0.0001 && cur_point.x > -0.5 - 0.0001 && cur_point.z < -0.5 + 0.0001 && cur_point.z > -0.5 - 0.0001 {
+                    println!("Elem: {}, p: ({}, {})", *elem, cur_point.x, cur_point.z);
+                }
+                if cur_point.x < -1. + 0.0001 && cur_point.x > -1. - 0.0001 && cur_point.z < -1. + 0.0001 && cur_point.z > -1. - 0.0001 {
+                    println!("Elem: {}, p: ({}, {})", *elem, cur_point.x, cur_point.z);
+                }
             }
             cur_point.x = -1. - step;
         }
@@ -85,20 +108,33 @@ impl Grid {
     }
 
     fn rbf_calculate_point(cur_point: &Point3, poles: &Vec<Point3>) -> f32 {
-        let mut distances: Vec<f32> = Vec::with_capacity(poles.len());
-        for pole in poles {
-            let dist = max(cur_point.distance_xz(pole), f32::MIN_POSITIVE * 100.);
-            // println!("CP: {}, Pole: {}, Rev dist: {}", cur_point, pole, rev_dist);
-            distances.push(dist);
-        }
-        let weights: Vec<f32> = distances.iter().map(|dist| -5. * (dist * dist) + 1.).collect(); // TODO: add function to config
-        let mut y_value = 0.;
-        for (w, d) in weights.iter().zip(poles) {
-            let weight = max(*w, 0.);
-            y_value = max(d.y * weight, y_value);
-            println!("y: {}, w: {}", d.y, weight);
+        let mut rev_distances: Vec<f32> = Vec::with_capacity(poles.len());
 
+        for pole in poles {
+            let dist = max(cur_point.distance_xz(pole), f32::EPSILON * 100.);
+            rev_distances.push(1. / dist);
         }
+
+        let shaping_factor = 5.6 / (25. * poles.len() as f32);
+        // let rbf_func = |dist :&f32| ((dist * dist) + shaping_factor).sqrt();
+        // let rbf_func = |dist :&f32| 1. / ((dist * dist) + shaping_factor).sqrt();
+        // let rbf_func = |dist :&f32| ((dist * dist) + shaping_factor).ln();
+        let rbf_func = |dist :&f32| ((dist * dist) + shaping_factor).powf(3.).sqrt();
+
+        let weights: Vec<f32> = rev_distances.iter().map(rbf_func).collect(); // TODO: add function to config
+        let weights_sum: f32 = weights.iter().sum();
+
+        let mut y_value = 0.;
+
+        let mut w_sum = 0.;
+        for (w, d) in weights.iter().zip(poles) {
+            // let w = max(*w, 0.);
+            let weight = w / weights_sum;
+            y_value += d.y * weight;
+            w_sum += weight;
+            // println!("y: {}, w: {}", d.y, weight);
+        }
+        // println!("W_sum: {}", w_sum);
         y_value
     }
 
@@ -107,15 +143,12 @@ impl Grid {
         let mut sum_rev_dists: f32 = 0.;
         for pole in poles {
             let rev_dist = 1. / max(cur_point.distance_xz(pole), f32::MIN_POSITIVE * 100.);
-            // println!("CP: {}, Pole: {}, Rev dist: {}", cur_point, pole, rev_dist);
             sum_rev_dists += rev_dist;
             rev_distances.push(rev_dist);
         }
-        // println!("SUM REV DIST: {}", sum_rev_dists);
         let weights: Vec<f32> = rev_distances.iter().map(|rev_dist| rev_dist / sum_rev_dists).collect();
         let mut y_value = 0.;
         for (w, d) in weights.iter().zip(poles) {
-            // println!("y: {}, w: {}", d.y, w);
             y_value += d.y * w;
         }
         y_value
@@ -150,7 +183,7 @@ fn grid_lines2points_str<'a>(lines: &Vec<&'a str>) -> Result<Vec<Vec<&'a str>>, 
 fn grid_points_str2points_f32(points: &Vec<Vec<&str>>) -> Result<Vec<Vec<f32>>, Error> {
     points.iter().map(|coords| {
         coords.iter().map(|coord| {
-            coord.parse::<f32>().map_err(|e| Error::ComponentIsNotF32 { name: coord.to_string() })
+            coord.trim().parse::<f32>().map_err(|e| Error::ComponentIsNotF32 { name: coord.to_string() })
         }).collect::<Result<Vec<f32>, Error>>()
     }).collect::<Result<Vec<Vec<f32>>, Error>>()
 }
