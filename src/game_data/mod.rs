@@ -49,6 +49,11 @@ impl GameData {
         Ok(())
     }
 
+    pub fn modulate(&mut self) -> Result<(), failure::Error> {
+        self.mvp.model_rotate_y(3.14 / 360.);
+        self.apply_uniforms().map_err(err_msg)
+    }
+
     pub fn process_input(&mut self) -> Result<(), failure::Error> {
         if self.controls.flush.into() { self.action_flush() };
         if self.controls.add_water.into() { self.action_add_water() };
@@ -64,7 +69,7 @@ impl GameData {
 
     pub fn render(&self) {
         self.color_buffer.clear(&self.gl);
-        self.surface.render(&self.gl, gl::LINE_STRIP);
+        self.surface.render(&self.gl, gl::LINE_STRIP); // TODO: add key for changing render mode
 
         // TODO: depth buffer
         unsafe {

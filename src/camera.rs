@@ -46,6 +46,11 @@ impl MVP {
             .to_homogeneous()
     }
 
+    pub fn model_rotate_y(&mut self, angle: f32) {
+        let rot_y: na::Matrix4<f32> = na::Isometry3::rotation(na::Vector3::y() * angle).to_homogeneous();
+        self.model = rot_y * self.model
+    }
+
     pub fn view_rotate_naviball(&mut self, naviball: na::Vector2<f32>) {
         let rot_y = na::Isometry3::rotation(na::Vector3::y() * 3.14 * naviball.x);
         let rot_x = na::Isometry3::rotation(na::Vector3::x() * 3.14 * naviball.y);
