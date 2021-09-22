@@ -45,9 +45,6 @@ fn run(grid_path: &str) -> Result<(), failure::Error> {
     let mut gd = GameData::new(&gl, &res, grid_path).map_err(err_msg)?;
     gd.init();
 
-    gd.set_grid()?;
-
-
     'main: loop {
         for event in event_pump.poll_iter() {
             match event {

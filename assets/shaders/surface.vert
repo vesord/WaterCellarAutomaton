@@ -18,7 +18,7 @@ vec4 remap(in float iMin, in float iMax, in vec4 oMin, in vec4 oMax, in float v)
 const vec4 GRASS = vec4(0., .8, 0., 1.);
 const vec4 ROCK = vec4(0.3, 0.22, 0.2, 1.);
 const vec4 SNOW = vec4(0.9, 0.9, 0.9, 1.);
-const float ROCK_LEVEL = 0.4;
+const float ROCK_LEVEL = 0.2;
 
 void main()
 {

@@ -1,5 +1,4 @@
 use na;
-use std::cmp;
 
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
@@ -60,8 +59,8 @@ impl MVP {
 
     pub fn view_translate_zoom(&mut self, zoom: f32) {
         match zoom {
-            z if z > 0. => self.view_translation[14] = min(self.view_translation[14] + zoom, -2.),
-            z if z < 0. => self.view_translation[14] = max(self.view_translation[14] + zoom, -20.),
+            z if z > 0. => self.view_translation[(4, 3)] = min(self.view_translation[(4, 3)] + zoom, -2.),
+            z if z < 0. => self.view_translation[(4, 3)] = max(self.view_translation[(4, 3)] + zoom, -20.),
             _ => (),
         }
     }

@@ -10,7 +10,7 @@ pub fn set_gl_attr(video: &VideoSubsystem) {
 
 pub fn create_window(video: &VideoSubsystem) -> Result<Window, failure::Error> {
     let window = video
-        .window("mod1", 900, 700)
+        .window("mod1", 900, 700)   // TODO: add to config
         .opengl()
         .resizable()
         .build().map_err(err_msg)?;

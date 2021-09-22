@@ -18,8 +18,8 @@ pub enum Error {
     UnableConvertFileToString { name: String },
     #[fail(display = "Point {} does not have 3 components (x, y, z)", name)]
     PointDoNotHave3Components { name: String },
-    #[fail(display = "Non f32 component found: {}", name)]
-    ComponentIsNotF32 { name: String },
+    #[fail(display = "Non f32 component found: {}, {}", name, message)]
+    ComponentIsNotF32 { name: String, message: String },
     #[fail(display = "Component X is not in range [-1;1]: {}", name)]
     ComponentXNotValid { name: String },
     #[fail(display = "Component Y is not in range [0;1]: {}", name)]
@@ -29,10 +29,10 @@ pub enum Error {
 }
 
 impl Grid {
-    pub fn new(res: &Resources, grid_path: &str, size: usize, griding_algo: GridingAlgo) -> Result<Grid, failure::Error> {
+    pub fn new(res: &Resources, grid_path: &str, size: usize, _griding_algo: GridingAlgo) -> Result<Grid, failure::Error> {
         let input_array = Grid::get_user_grid(res, grid_path)?;
         let input_array = Grid::add_zeros_to_edges(&input_array, 10);    // TODO: config
-        let grid = Grid::make_grid(size, &input_array, GridingAlgo::RadialBasisFunction);
+        let grid = Grid::make_grid(size, &input_array, GridingAlgo::RadialBasisFunction);   // TODO: pass griging_algo
         Ok(Grid {
             poles: input_array,
             data: grid,
@@ -62,7 +62,7 @@ impl Grid {
         let mut input_zeroed: Vec<na::Vector3<f32>> = Vec::with_capacity((count * 4) as usize + input.len());
         let step = 2. / count as f32;
         let mut coord = 0.;
-        for i in 0..count {
+        for _i in 0..count {
             coord += step;
             input_zeroed.push(na::Vector3::new(-1. + coord, 0., -1.));
             input_zeroed.push(na::Vector3::new(1., 0., -1. + coord));
@@ -82,9 +82,9 @@ impl Grid {
         let mut cur_point: na::Vector3<f32> = na::Vector3::new(-1. - step, 0., -1. - step);
         let mut grid: Vec<Vec<f32>> = vec![vec![0.; size]; size];
 
-        for mut row in &mut grid {
+        for row in &mut grid {
             cur_point.z += step;
-            for mut elem in row {
+            for elem in row {
                 cur_point.x += step;
                 *elem = griding_function(&cur_point, poles);
                 if cur_point.x < -0.5 + 0.0001 && cur_point.x > -0.5 - 0.0001 && cur_point.z < -0.5 + 0.0001 && cur_point.z > -0.5 - 0.0001 {
@@ -127,15 +127,10 @@ impl Grid {
 
         let mut y_value = 0.;
 
-        let mut w_sum = 0.;
         for (w, d) in weights.iter().zip(poles) {
-            // let w = max(*w, 0.);
             let weight = w / weights_sum;
             y_value += d.y * weight;
-            w_sum += weight;
-            // println!("y: {}, w: {}", d.y, weight);
         }
-        // println!("W_sum: {}", w_sum);
         y_value
     }
 
@@ -171,7 +166,7 @@ fn length_on_xz(p1: &na::Vector3<f32>, p2: &na::Vector3<f32>) -> f32 {
 
 fn grid_str2file(str: CString, filename: &str) -> Result<String, Error> {
     str.into_string().map_err(
-        |e| Error::UnableConvertFileToString { name: filename.into() }
+        |_| Error::UnableConvertFileToString { name: filename.into() }
     )
 }
 
@@ -188,7 +183,7 @@ fn grid_lines2points_str<'a>(lines: &Vec<&'a str>) -> Result<Vec<Vec<&'a str>>, 
 fn grid_points_str2points_f32(points: &Vec<Vec<&str>>) -> Result<Vec<Vec<f32>>, Error> {
     points.iter().map(|coords| {
         coords.iter().map(|coord| {
-            coord.trim().parse::<f32>().map_err(|e| Error::ComponentIsNotF32 { name: coord.to_string() })
+            coord.trim().parse::<f32>().map_err(|e| Error::ComponentIsNotF32 { name: coord.to_string(), message: e.to_string() })
         }).collect::<Result<Vec<f32>, Error>>()
     }).collect::<Result<Vec<Vec<f32>>, Error>>()
 }

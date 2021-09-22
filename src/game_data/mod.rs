@@ -6,16 +6,19 @@ use surface::Surface;
 use crate::camera::MVP;
 use controls::{Actions, Controls};
 use crate::game_data::grid::{Grid, GridingAlgo};
+use crate::game_data::water::Water;
 
 pub mod controls;
 mod surface;
+mod water;
 mod grid;
 
 pub struct GameData {
     gl: gl::Gl,
     viewport: Viewport,
-    surface: Surface,
     grid: Grid,
+    surface: Surface,
+    water: Water,
     mvp: MVP,
     color_buffer: ColorBuffer,
     pub controls: Controls,
@@ -29,16 +32,20 @@ impl GameData {
         let viewport = gl_render::Viewport::for_window(900, 700); // TODO add size to config
         viewport.use_it(&gl);
 
-        let surface = Surface::new(&res, &gl)?;
+        let grid = Grid::new(&res, grid_path, 200, GridingAlgo::RadialBasisFunction)?;  // TODO: add size to config (200 in subj)
+
+        let mut surface = Surface::new(&res, &gl)?;
+        surface.set_grid(grid.get_data())?;
+
+        let water = Water::new(&res, &gl)?;
 
         let mvp = MVP::new();
         surface.apply_uniform(&gl, &mvp, "mvp_transform").map_err(err_msg)?;
+        water.apply_uniform(&gl, &mvp, "mvp_transform").map_err(err_msg)?;
 
         let controls = Controls::new();
 
-        let grid = Grid::new(&res, grid_path, 200, GridingAlgo::RadialBasisFunction)?;  // TODO: add size to config (200 in subj)
-
-        Ok(GameData { gl: gl.clone(), viewport, surface, grid, mvp, color_buffer, controls })
+        Ok(GameData { gl: gl.clone(), viewport, surface, grid, mvp, color_buffer, controls, water })
     }
 
     pub fn resized(&mut self, w: i32, h: i32) -> Result<(), failure::Error> {
@@ -70,6 +77,7 @@ impl GameData {
     pub fn render(&self) {
         self.color_buffer.clear(&self.gl);
         self.surface.render(&self.gl, gl::TRIANGLES); // TODO: add key for changing render mode
+        self.water.render(&self.gl, gl::TRIANGLES);
 
         // TODO: depth buffer
         unsafe {
@@ -79,6 +87,7 @@ impl GameData {
 
     fn apply_uniforms(&self) -> Result<(), failure::Error> {
         self.surface.apply_uniform(&self.gl, &self.mvp, "mvp_transform").map_err(err_msg)?;
+        self.water.apply_uniform(&self.gl, &self.mvp, "mvp_transform").map_err(err_msg)?;
         Ok(())
     }
 
@@ -94,10 +103,10 @@ impl GameData {
             self.gl.ClearDepth(1.);
         }
     }
-
-    pub fn set_grid(&mut self) -> Result<(), failure::Error> {
-        self.surface.set_grid(self.grid.get_data())
-    }
+    // TODO: remove if not need
+    // pub fn set_grid(&mut self) -> Result<(), failure::Error> {
+    //     self.surface.set_grid(self.grid.get_data())
+    // }
 
     fn action_flush(&mut self) {
         self.controls.reset_action(Actions::Flush);
