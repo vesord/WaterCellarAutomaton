@@ -32,12 +32,14 @@ impl GameData {
         let viewport = gl_render::Viewport::for_window(900, 700); // TODO add size to config
         viewport.use_it(&gl);
 
-        let grid = Grid::new(&res, grid_path, 200, GridingAlgo::RadialBasisFunction)?;  // TODO: add size to config (200 in subj)
+        let grid = Grid::new(&res, grid_path, 100, GridingAlgo::RadialBasisFunction)?;  // TODO: add size to config (200 in subj)
 
         let mut surface = Surface::new(&res, &gl)?;
         surface.set_grid(grid.get_data())?;
 
-        let water = Water::new(&res, &gl)?;
+        let mut water = Water::new(&res, &gl)?;
+        water.generate_borders(grid.get_data());
+        water.set_water_level(0.15)?;
 
         let mvp = MVP::new();
         surface.apply_uniform(&gl, &mvp, "mvp_transform").map_err(err_msg)?;
@@ -57,13 +59,15 @@ impl GameData {
     }
 
     pub fn modulate(&mut self) -> Result<(), failure::Error> {
-        self.mvp.model_rotate_y(3.14 / 360.);
+        // self.mvp.model_rotate_y(3.14 / 360.);
+        self.water.loop_add_water(0.002);
         self.apply_uniforms().map_err(err_msg)
     }
 
     pub fn process_input(&mut self) -> Result<(), failure::Error> {
         if self.controls.flush.into() { self.action_flush() };
-        if self.controls.add_water.into() { self.action_add_water() };
+        if self.controls.add_water.into() { self.action_add_water().map_err(err_msg)? };        // TODO: rename inc_water / dec_water
+        if self.controls.remove_water.into() { self.action_remove_water().map_err(err_msg)? };
         if self.controls.wave_n.into() { self.action_wave_n() };
         if self.controls.wave_s.into() { self.action_wave_s() };
         if self.controls.wave_w.into() { self.action_wave_w() };
@@ -113,9 +117,16 @@ impl GameData {
         println!("FLUSH!")
     }
 
-    fn action_add_water(&mut self) {
+    fn action_add_water(&mut self) -> Result<(), failure::Error>{
+        println!("ADD WATER");
         self.controls.reset_action(Actions::AddWater);
-        println!("ADD WATER")
+        self.water.increase_water_level()
+    }
+
+    fn action_remove_water(&mut self) -> Result<(), failure::Error>{
+        println!("REMOVE WATER");
+        self.controls.reset_action(Actions::RemoveWater);
+        self.water.decrease_water_level()
     }
 
     fn action_wave_s(&mut self) {

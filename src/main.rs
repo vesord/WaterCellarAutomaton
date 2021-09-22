@@ -61,7 +61,7 @@ fn run(grid_path: &str) -> Result<(), failure::Error> {
             }
         }
         gd.process_input()?;
-        // gd.modulate();
+        gd.modulate();
         gd.render();
         window.gl_swap_window();
     }

@@ -63,6 +63,17 @@ impl<B: BufferType> Buffer<B> {
         }
     }
 
+    pub fn dynamic_draw_data<T>(&self, data: &[T]) {
+        unsafe {
+            self.gl.BufferData(
+                B::BUFFER_TYPE, // target
+                (data.len() * ::std::mem::size_of::<T>()) as gl::types::GLsizeiptr, // size of data in bytes
+                data.as_ptr() as *const gl::types::GLvoid, // pointer to data
+                gl::DYNAMIC_DRAW, // usage
+            );
+        }
+    }
+
     pub fn set_elem_count(&mut self, count: usize) {
         self.elem_count = count;
     }
