@@ -93,6 +93,7 @@ impl Surface {
                 0 as *const gl::types::GLvoid,
             )
         }
+        self.vao.unbind();
     }
 
     fn update_buffers(&mut self, vertices: &[Vertex], indices: &[u32]) {

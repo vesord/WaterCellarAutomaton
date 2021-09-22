@@ -18,6 +18,12 @@ impl From<(f32, f32, f32)> for Vertex {
     }
 }
 
+impl From<na::Vector3<f32>> for Vertex {
+    fn from(v: na::Vector3<f32>) -> Self {
+        Vertex { pos: (v.x, v.y, v.z).into() }
+    }
+}
+
 #[derive(Debug)]
 enum Drop {
     Empty,
@@ -95,53 +101,44 @@ impl Water {
                 0 as *const gl::types::GLvoid,
             )
         }
-        println!("Render done");
+        self.vao.unbind();
+        // println!("Render done");
     }
 
-    pub fn generate_borders(&mut self, grid_heights: &[Vec<f32>]) {
-        let mut borders: Vec<Vec<Vec<Drop>>> = vec![];
-        let borders_h: usize = grid_heights.len();
-        let step_h = 1. / grid_heights.len() as f32;
-
-        for row in grid_heights {
-            let mut side: Vec<Vec<Drop>> = Vec::with_capacity(grid_heights.len());
-
-            for elem in row {
-                let mut col: Vec<Drop> = Vec::with_capacity(borders_h);
-                let cur_height = (elem / step_h).ceil() as usize;
-                for _i in 0..cur_height {
-                    col.push(Drop::Border);
-                }
-                for _i in cur_height..grid_heights.len() {
-                    col.push(Drop::Empty);
-                }
-                side.push(col);
-            }
-            borders.push(side);
-        }
-        self.grid = borders
+    pub fn set_grid(&mut self, grid_heights: &[Vec<f32>]) {
+        let borders_h = grid_heights.len();
+        self.grid = generate_borders(grid_heights, borders_h);
+        let vertices = generate_vertex_grid(&self.grid);
+        self.update_vbo(&vertices);
+        let indices: Vec<u32> = vec![];
+        self.update_ebo(&indices);
     }
 
-    pub fn loop_add_water(&mut self, speed: f32) -> Result<(), failure::Error> {
+    pub fn loop_add_water(&mut self, speed: f32) {    // TODO: probably remove it
         let mut new_water_level = self.water_level + speed;
         if new_water_level > 0.25 {
             new_water_level = 0.;
         }
-        self.set_water_level(new_water_level)
+        self.set_water_level(new_water_level);
     }
 
-    pub fn decrease_water_level(&mut self) -> Result<(), failure::Error> {
+    pub fn decrease_water_level(&mut self) {
         let new_water_level = self.water_level - 0.05; // TODO: config
-        self.set_water_level(new_water_level)
+        self.set_water_level(new_water_level);
     }
 
-    pub fn increase_water_level(&mut self) -> Result<(), failure::Error> {
+    pub fn increase_water_level(&mut self) {
         let new_water_level = self.water_level + 0.05; // TODO: config
-        self.set_water_level(new_water_level)
+        self.set_water_level(new_water_level);
     }
 
-    pub fn set_water_level(&mut self, water_level: f32) -> Result<(), failure::Error> {
+    pub fn set_water_level(&mut self, water_level: f32) {
         let water_level = water_level.clamp(0., 1.);
+        self.set_water_level_on_border(water_level);
+        self.recalculate_render_data();
+    }
+
+    fn set_water_level_on_border(&mut self, water_level: f32) {
         self.water_level = water_level;
         let step = 1. / self.grid.len() as f32;
 
@@ -159,14 +156,12 @@ impl Water {
             }
         }
         println!("Set Water Level done");
-
-        self.recalculate_render_data()
     }
 
-    fn recalculate_render_data(&mut self) -> Result<(), failure::Error> {
-        let (vertices, indices): (Vec<Vertex>, Vec<u32>) = generate_vertices_indices_for_render(&self.grid)?;
-        self.update_buffers(&vertices, &indices);
-        Ok(())
+    fn recalculate_render_data(&mut self) {
+        let indices: Vec<u32> = generate_indices_for_render(&self.grid);
+        self.update_ebo(&indices);
+        self.update_vao();
     }
 
     pub fn print_col(&self, coord: (usize, usize)) {
@@ -175,65 +170,115 @@ impl Water {
         }
     }
 
-    fn update_buffers(&mut self, vertices: &[Vertex], indices: &[u32]) {
+    fn update_vbo(&self, vertices: &[Vertex]) {
         self.vbo.bind();
-        self.vbo.dynamic_draw_data(vertices);
+        self.vbo.static_draw_data(vertices);
         self.vbo.unbind();
+    }
 
+    fn update_ebo(&mut self, indices: &[u32]) {
         self.ebo.bind();
         self.ebo.set_elem_count(indices.len());
         self.ebo.dynamic_draw_data(indices);
         self.ebo.unbind();
+    }
 
+    fn update_vao(&self) {
         self.vao.bind();
         self.vbo.bind();
         self.ebo.bind();
         self.vbo.unbind();
         self.vao.unbind();
         self.ebo.unbind();
+    }
+
+    fn update_buffers(&mut self, vertices: &[Vertex], indices: &[u32]) {
+        self.update_vbo(vertices);
+        self.update_ebo(indices);
+        self.update_vao();
         println!("Opengl Buffers Update done");
     }
 }
 
-fn generate_vertices_indices_for_render(cube: &Vec<Vec<Vec<Drop>>>) -> Result<(Vec<Vertex>, Vec<u32>), failure::Error> {
-    let mut vertices: Vec<Vertex> = Vec::with_capacity(cube.len().pow(3) * 3);
-    let mut indices: Vec<u32> = Vec::with_capacity(cube.len().pow(3) * 6);
-    let mut cur_coord = (-1., 0., -1.);
-    let xz_step = 2. / cube.len() as f32;
-    let mut cur_index = 0;
+fn generate_borders(grid_heights: &[Vec<f32>], borders_h: usize) -> Vec<Vec<Vec<Drop>>> {
+    let mut borders: Vec<Vec<Vec<Drop>>> = vec![];
+    let step_h = 1. / (grid_heights.len() - 1) as f32;
+
+    for row in grid_heights {
+        let mut side: Vec<Vec<Drop>> = Vec::with_capacity(grid_heights.len());
+
+        for elem in row {
+            let mut col: Vec<Drop> = Vec::with_capacity(borders_h);
+            let cur_height = (elem / step_h).ceil() as usize;
+            for _i in 0..cur_height {
+                col.push(Drop::Border);
+            }
+            for _i in cur_height..grid_heights.len() {
+                col.push(Drop::Empty);
+            }
+            side.push(col);
+        }
+        borders.push(side);
+    }
+    borders
+}
+
+fn generate_vertex_grid(cube: &Vec<Vec<Vec<Drop>>>) -> Vec<Vertex> {
+    let mut vertices: Vec<Vertex> = Vec::with_capacity(cube.len() * cube[0].len() * cube[0][0].len());
+    let mut cur_coord = na::Vector3::new(-1., 0., -1.);
+    let xz_step = 2. / (cube.len() - 1) as f32;
+    let y_step = 1. / (cube[0][0].len() - 1) as f32;
 
     for side in cube {
-        cur_coord.0 = -1.;
+        cur_coord.x = -1.;
         for col in side {
-            cur_coord.1 = 0.;
-            let y_step = 1. / col.len() as f32;
+            cur_coord.y = 0.;
 
-            for drop in col {
-                match drop {
+            // print!("Coord: {}, {}; Col: ", cur_coord.x, cur_coord.z);
+            for _drop in col {
+                // print!("{} ", cur_coord.y);
+                vertices.push(cur_coord.into());
+                cur_coord.y += y_step;
+            }
+            // println!();
+            cur_coord.x += xz_step;
+        }
+        cur_coord.z += xz_step;
+    }
+    vertices
+}
+
+
+fn generate_indices_for_render(cube: &Vec<Vec<Vec<Drop>>>) -> Vec<u32> {
+    let mut indices: Vec<u32> = Vec::with_capacity(cube.len().pow(3) * 6);
+    let sides = cube.len();
+    let cols = cube[0].len();
+    let drops =cube[0][0].len();
+
+    for side_i in 0..(sides - 1) {
+        for col_i in 0..(cols - 1) {
+            // print!("Coord: {}, {}; Col: ", side_i, col_i);
+            for drop_i in 0..(drops) {
+                match cube[side_i][col_i][drop_i] {
                     Drop::Water => {
-                        // println!("Pushed water at: {:?}", cur_coord);
-                        vertices.push(cur_coord.into());
-                        vertices.push((cur_coord.0 + xz_step, cur_coord.1, cur_coord.2).into());
-                        vertices.push((cur_coord.0 + xz_step, cur_coord.1, cur_coord.2 + xz_step).into());
-                        vertices.push((cur_coord.0, cur_coord.1, cur_coord.2 + xz_step).into());
-                        indices.push(cur_index);
-                        indices.push(cur_index + 2);
-                        indices.push(cur_index + 1);
-                        indices.push(cur_index);
-                        indices.push(cur_index + 3);
-                        indices.push(cur_index + 2);
-                        cur_index += 4;
+                        let cur_index = side_i * (drops * cols) + col_i * (drops) + drop_i;
+                        indices.push(cur_index as u32);
+                        indices.push((cur_index + drops * (cols + 1)) as u32);
+                        indices.push((cur_index + drops) as u32);
+
+                        indices.push(cur_index as u32);
+                        indices.push((cur_index + drops * (cols)) as u32);
+                        indices.push((cur_index + drops * (cols + 1)) as u32);
                     }
                     _ => ()
                 }
-                cur_coord.1 += y_step;
+                // print!("{} ", drop_i);
             }
-            cur_coord.0 += xz_step;
+            // println!();
         }
-        cur_coord.2 += xz_step;
     }
-    println!("Water Buffers Recalculation done");
-    Ok((vertices, indices))
+    println!("Water Indices Recalculation done");
+    indices
 }
 
 impl uniform::HasUniform<MVP> for Water {
