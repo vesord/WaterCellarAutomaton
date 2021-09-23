@@ -39,7 +39,6 @@ impl GameData {
 
         let mut water = Water::new(&res, &gl)?;
         water.set_grid(grid.get_data());    // TODO: move to ::new()
-        water.set_water_level(0.15);
 
         let mvp = MVP::new();
         surface.apply_uniform(&gl, &mvp, "mvp_transform").map_err(err_msg)?;
@@ -124,9 +123,8 @@ impl GameData {
     }
 
     fn action_remove_water(&mut self) {
-        println!("REMOVE WATER");
+        println!("REMOVE WATER (no action)");
         self.controls.reset_action(Actions::RemoveWater);
-        self.water.decrease_water_level();
     }
 
     fn action_wave_s(&mut self) {

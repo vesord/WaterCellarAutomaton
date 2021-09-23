@@ -35,7 +35,8 @@ enum Drop {
 }
 
 pub struct Water {
-    water_level: f32,
+    water_level_max: usize,
+    water_level: usize,
     grid: Vec<Vec<Vec<Drop>>>,
     program: gl_render::Program,
     vbo: buffer::ArrayBuffer,
@@ -80,9 +81,11 @@ impl Water {
         ebo.unbind();
 
         let grid = vec![];
-        let water_level: f32 = 0.;
+        let water_level = 0;
+        let water_level_max = 0;
 
         Ok(Water {
+            water_level_max,
             water_level,
             grid,
             program,
@@ -111,59 +114,82 @@ impl Water {
     pub fn set_grid(&mut self, grid_heights: &[Vec<f32>]) {
         let borders_h = grid_heights.len();
         self.grid = generate_borders(grid_heights, borders_h);
+        self.water_level_max = borders_h;
         let vertices = generate_vertex_grid(&self.grid);
         self.update_vbo(&vertices);
         let indices: Vec<u32> = vec![];
         self.update_ebo(&indices);
     }
 
-    pub fn loop_add_water(&mut self, speed: f32) {    // TODO: probably remove it
-        let mut new_water_level = self.water_level + speed;
-        if new_water_level > 0.25 {
-            new_water_level = 0.;
-        }
-        self.set_water_level(new_water_level);
-    }
+    // pub fn loop_add_water(&mut self, speed: f32) {    // TODO: probably remove it
+    //     println!("loop_add_water() deprecated")
+    //     // let mut new_water_level = self.water_level + speed;
+    //     // if new_water_level > 0.25 {
+    //     //     new_water_level = 0.;
+    //     // }
+    //     // self.set_water_level(new_water_level);
+    // }
 
-    pub fn decrease_water_level(&mut self) {
-        let new_water_level = self.water_level - 0.05; // TODO: config
-        self.set_water_level(new_water_level);
-    }
+    // pub fn decrease_water_level(&mut self) {
+    //     println!("decrease_water_level() deprecated")
+    //     // let new_water_level = self.water_level - 0.05; // TODO: config
+    //     // self.set_water_level(new_water_level);
+    // }
 
     pub fn increase_water_level(&mut self) {
-        let new_water_level = self.water_level + 0.05; // TODO: config
-        self.set_water_level(new_water_level);
-    }
-
-    pub fn set_water_level(&mut self, water_level: f32) {
-        let water_level = water_level.clamp(0., 1.);
-        self.set_water_level_on_border(water_level);
+        let new_water_level = (self.water_level + 1).clamp(0, self.water_level_max); // TODO: config
+        self.water_level = new_water_level;
+        self.fill_water_level(new_water_level);
         self.recalculate_render_data();
     }
 
-    fn set_water_level_on_border(&mut self, water_level: f32) {
+    fn fill_water_level(&mut self, level: usize) {
         let start = Utc::now();
-
-        self.water_level = water_level;
-        let step = 1. / self.grid.len() as f32;
 
         for side in &mut self.grid {
             for col in side {
-                let mut cur_level: f32 = 0.;
-                for mut drop in col {
-                    *drop = match (cur_level, &drop) {
-                        (_, Drop::Border) => Drop::Border,
-                        (level, _) if level < water_level => Drop::Water,
-                        (_, _) => Drop::Empty,
-                    };
-                    cur_level += step;
+                col[level] = match &col[level] {
+                    Drop::Empty => Drop::Water,
+                    Drop::Water => Drop::Water,
+                    Drop::Border => Drop::Border,
                 }
             }
         }
 
         let end = Utc::now();
-        println!("Set Water Level on grid done, taken {} ms", (end - start).num_milliseconds());
+
+        println!("Fill water level done, taken {} ms", (end - start).num_milliseconds())
     }
+
+    // pub fn set_water_level(&mut self, water_level: f32) {
+    //     let water_level = water_level.clamp(0., 1.);
+    //     self.set_water_level_on_border(water_level);
+    //     self.recalculate_render_data();
+    // }
+
+    // fn set_water_level_on_border(&mut self, water_level: f32) {
+    //     let start = Utc::now();
+    //
+    //     self.water_level = water_level;
+    //     let step = 1. / self.grid.len() as f32;
+    //
+    //     for side in &mut self.grid {
+    //         for col in side {
+    //             let mut cur_level: f32 = 0.;
+    //             for mut drop in col {
+    //                 *drop = match (cur_level, &drop) {
+    //                     (_, Drop::Border) => Drop::Border,
+    //                     (level, _) if level < water_level => Drop::Water,
+    //                     (_, _) => Drop::Empty,
+    //                 };
+    //                 cur_level += step;
+    //             }
+    //         }
+    //     }
+    //
+    //     let end = Utc::now();
+    //     println!("Set Water Level on grid done, taken {} ms", (end - start).num_milliseconds());
+    // }
 
     fn recalculate_render_data(&mut self) {
         let indices: Vec<u32> = generate_indices_for_render(&self.grid);
