@@ -269,30 +269,31 @@ fn generate_indices_for_render(cube: &Vec<Vec<Vec<Drop>>>) -> Vec<u32> {
     let start = Utc::now();
 
     let mut indices: Vec<u32> = Vec::with_capacity(cube.len().pow(3) * 6);
-    let sides = cube.len();
+
     let cols = cube[0].len();
-    let drops =cube[0][0].len();
+    let drops = cube[0][0].len();
+    let top_left_offset = (drops) as u32;
+    let bot_left_offset = (drops * (cols + 1)) as u32;
+    let bot_right_offset = (drops * cols) as u32;
+    let mut cur_index: u32 = 0;
 
-    for side_i in 0..(sides - 1) {
-        for col_i in 0..(cols - 1) {
-            // print!("Coord: {}, {}; Col: ", side_i, col_i);
-            for drop_i in 0..(drops) {
-                match cube[side_i][col_i][drop_i] {
+    for side in cube {
+        for col in side {
+            for drop in col {
+                match drop {
                     Drop::Water => {
-                        let cur_index = side_i * (drops * cols) + col_i * (drops) + drop_i;
-                        indices.push(cur_index as u32);
-                        indices.push((cur_index + drops * (cols + 1)) as u32);
-                        indices.push((cur_index + drops) as u32);
+                        indices.push(cur_index);
+                        indices.push((cur_index + bot_left_offset));
+                        indices.push((cur_index + top_left_offset));
 
-                        indices.push(cur_index as u32);
-                        indices.push((cur_index + drops * (cols)) as u32);
-                        indices.push((cur_index + drops * (cols + 1)) as u32);
+                        indices.push(cur_index);
+                        indices.push((cur_index + bot_right_offset));
+                        indices.push((cur_index + bot_left_offset));
                     }
                     _ => ()
                 }
-                // print!("{} ", drop_i);
+                cur_index += 1;
             }
-            // println!();
         }
     }
 
