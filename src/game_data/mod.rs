@@ -32,7 +32,7 @@ impl GameData {
         let viewport = gl_render::Viewport::for_window(900, 700); // TODO add size to config
         viewport.use_it(&gl);
 
-        let grid = Grid::new(&res, grid_path, 300, GridingAlgo::RadialBasisFunction)?;  // TODO: add size to config (200 in subj)
+        let grid = Grid::new(&res, grid_path, 200, GridingAlgo::RadialBasisFunction)?;  // TODO: add size to config (200 in subj)
 
         let mut surface = Surface::new(&res, &gl)?;
         surface.set_grid(grid.get_data())?;                     // TODO: move to ::new()

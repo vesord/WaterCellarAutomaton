@@ -4,6 +4,9 @@ use crate::camera::MVP;
 use std::ffi::CString;
 use failure::err_msg;
 
+extern crate chrono;
+use chrono::prelude::*;
+
 #[derive(VertexAttribPointers)]
 #[derive(Copy, Clone, Debug)]
 #[repr(C, packed)]
@@ -139,6 +142,8 @@ impl Water {
     }
 
     fn set_water_level_on_border(&mut self, water_level: f32) {
+        let start = Utc::now();
+
         self.water_level = water_level;
         let step = 1. / self.grid.len() as f32;
 
@@ -155,7 +160,9 @@ impl Water {
                 }
             }
         }
-        println!("Set Water Level done");
+
+        let end = Utc::now();
+        println!("Set Water Level on grid done, taken {} ms", (end - start).num_milliseconds());
     }
 
     fn recalculate_render_data(&mut self) {
@@ -193,10 +200,14 @@ impl Water {
     }
 
     fn update_buffers(&mut self, vertices: &[Vertex], indices: &[u32]) {
+        let start = Utc::now();
+
         self.update_vbo(vertices);
         self.update_ebo(indices);
         self.update_vao();
-        println!("Opengl Buffers Update done");
+
+        let end = Utc::now();
+        println!("Opengl Buffers Update done, taken {} ms", (end - start).num_milliseconds());
     }
 }
 
@@ -224,6 +235,8 @@ fn generate_borders(grid_heights: &[Vec<f32>], borders_h: usize) -> Vec<Vec<Vec<
 }
 
 fn generate_vertex_grid(cube: &Vec<Vec<Vec<Drop>>>) -> Vec<Vertex> {
+    let start = Utc::now();
+
     let mut vertices: Vec<Vertex> = Vec::with_capacity(cube.len() * cube[0].len() * cube[0][0].len());
     let mut cur_coord = na::Vector3::new(-1., 0., -1.);
     let xz_step = 2. / (cube.len() - 1) as f32;
@@ -245,11 +258,16 @@ fn generate_vertex_grid(cube: &Vec<Vec<Vec<Drop>>>) -> Vec<Vertex> {
         }
         cur_coord.z += xz_step;
     }
+
+    let end = Utc::now();
+    println!("Gen Water Vertex Grid taken: {} ms", (end - start).num_milliseconds());
     vertices
 }
 
 
 fn generate_indices_for_render(cube: &Vec<Vec<Vec<Drop>>>) -> Vec<u32> {
+    let start = Utc::now();
+
     let mut indices: Vec<u32> = Vec::with_capacity(cube.len().pow(3) * 6);
     let sides = cube.len();
     let cols = cube[0].len();
@@ -277,7 +295,9 @@ fn generate_indices_for_render(cube: &Vec<Vec<Vec<Drop>>>) -> Vec<u32> {
             // println!();
         }
     }
-    println!("Water Indices Recalculation done");
+
+    let end = Utc::now();
+    println!("Water Indices Recalculation done, taken {} ms", (end - start).num_milliseconds());
     indices
 }
 
