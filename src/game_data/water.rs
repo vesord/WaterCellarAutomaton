@@ -6,6 +6,7 @@ use failure::err_msg;
 
 extern crate chrono;
 use chrono::prelude::*;
+use std::ops::{Index, IndexMut};
 
 #[derive(VertexAttribPointers)]
 #[derive(Copy, Clone, Debug)]
@@ -27,6 +28,41 @@ impl From<na::Vector3<f32>> for Vertex {
     }
 }
 
+#[repr(C, packed)]
+struct TriangleIdx {
+    i0: u32,
+    i1: u32,
+    i2: u32,
+}
+
+impl From<(u32, u32, u32)> for TriangleIdx {
+    fn from(other: (u32, u32, u32)) -> Self {
+        TriangleIdx {
+            i0: other.0, i1: other.1, i2: other.2,
+        }
+    }
+}
+
+#[repr(C, packed)]
+struct WaterDropShape {
+    t0: TriangleIdx,
+    t1: TriangleIdx,
+}
+
+impl WaterDropShape {
+    pub fn new(x: u32, y: u32, z: u32, xz_size: u32, y_size: u32) -> WaterDropShape {
+        let p0 = z * xz_size * y_size + x * xz_size + y;    // Top left
+        let p1  = p0 + y_size;                              // Top right
+        let p2 = p0 + y_size * (xz_size + 1);               // Bot right
+        let p3 = p0 + y_size * xz_size;                     // Bot left
+
+        WaterDropShape {
+            t0: (p0, p1, p2).into(),
+            t1: (p0, p3, p2).into(),
+        }
+    }
+}
+
 #[derive(Debug)]
 enum Drop {
     Empty,
@@ -38,6 +74,8 @@ pub struct Water {
     water_level_max: usize,
     water_level: usize,
     grid: Vec<Vec<Vec<Drop>>>,
+    locations: Vec<na::Vector3<usize>>,
+    ib_data: Vec<WaterDropShape>,
     program: gl_render::Program,
     vbo: buffer::ArrayBuffer,
     ebo: buffer::ElementArrayBuffer,
@@ -83,15 +121,13 @@ impl Water {
         let grid = vec![];
         let water_level = 0;
         let water_level_max = 0;
+        let locations = vec![];
+        let ib_data = vec![];
 
         Ok(Water {
-            water_level_max,
-            water_level,
-            grid,
-            program,
-            vbo,
-            ebo,
-            vao,
+            water_level_max, water_level,
+            grid, locations, ib_data,
+            program, vbo, ebo, vao,
         })
     }
 
@@ -121,79 +157,46 @@ impl Water {
         self.update_ebo(&indices);
     }
 
-    // pub fn loop_add_water(&mut self, speed: f32) {    // TODO: probably remove it
-    //     println!("loop_add_water() deprecated")
-    //     // let mut new_water_level = self.water_level + speed;
-    //     // if new_water_level > 0.25 {
-    //     //     new_water_level = 0.;
-    //     // }
-    //     // self.set_water_level(new_water_level);
-    // }
-
-    // pub fn decrease_water_level(&mut self) {
-    //     println!("decrease_water_level() deprecated")
-    //     // let new_water_level = self.water_level - 0.05; // TODO: config
-    //     // self.set_water_level(new_water_level);
-    // }
-
     pub fn increase_water_level(&mut self) {
-        let new_water_level = (self.water_level + 1).clamp(0, self.water_level_max); // TODO: config
+        let new_water_level = (self.water_level + 1).clamp(0, self.water_level_max - 1); // TODO: config
         self.water_level = new_water_level;
         self.fill_water_level(new_water_level);
-        self.recalculate_render_data();
     }
 
     fn fill_water_level(&mut self, level: usize) {
         let start = Utc::now();
+        let xz_size = self.grid.len() as u32;
+        let y_size = self.water_level_max as u32;
+        let mut cur_water_idx_x = 0;
+        let mut cur_water_idx_z = 0;
 
         for side in &mut self.grid {
+            cur_water_idx_x = 0;
             for col in side {
-                col[level] = match &col[level] {
-                    Drop::Empty => Drop::Water,
+                *col.index_mut(level) = match col.index(level) {
+                    Drop::Empty => {
+                        add_water_drop(&mut self.locations, &mut self.ib_data,
+                                       cur_water_idx_x, level, cur_water_idx_z,
+                                       xz_size, y_size);
+                        Drop::Water
+                    },
                     Drop::Water => Drop::Water,
                     Drop::Border => Drop::Border,
-                }
+                };
+                cur_water_idx_x += 1;
             }
+            cur_water_idx_z += 1;
         }
 
         let end = Utc::now();
 
-        println!("Fill water level done, taken {} ms", (end - start).num_milliseconds())
-    }
+        println!("Fill water level done, taken {} ms", (end - start).num_milliseconds());
 
-    // pub fn set_water_level(&mut self, water_level: f32) {
-    //     let water_level = water_level.clamp(0., 1.);
-    //     self.set_water_level_on_border(water_level);
-    //     self.recalculate_render_data();
-    // }
-
-    // fn set_water_level_on_border(&mut self, water_level: f32) {
-    //     let start = Utc::now();
-    //
-    //     self.water_level = water_level;
-    //     let step = 1. / self.grid.len() as f32;
-    //
-    //     for side in &mut self.grid {
-    //         for col in side {
-    //             let mut cur_level: f32 = 0.;
-    //             for mut drop in col {
-    //                 *drop = match (cur_level, &drop) {
-    //                     (_, Drop::Border) => Drop::Border,
-    //                     (level, _) if level < water_level => Drop::Water,
-    //                     (_, _) => Drop::Empty,
-    //                 };
-    //                 cur_level += step;
-    //             }
-    //         }
-    //     }
-    //
-    //     let end = Utc::now();
-    //     println!("Set Water Level on grid done, taken {} ms", (end - start).num_milliseconds());
-    // }
-
-    fn recalculate_render_data(&mut self) {
-        let indices: Vec<u32> = generate_indices_for_render(&self.grid);
-        self.update_ebo(&indices);
+        // TODO: refactor
+        self.ebo.bind();
+        self.ebo.dynamic_draw_data(&self.ib_data);
+        self.ebo.set_elem_count(self.ib_data.len() * 6);
+        self.ebo.unbind();
         self.update_vao();
     }
 
@@ -235,6 +238,19 @@ impl Water {
         let end = Utc::now();
         println!("Opengl Buffers Update done, taken {} ms", (end - start).num_milliseconds());
     }
+}
+
+fn add_water_drop(locations: &mut Vec<na::Vector3<usize>>, ib_data: &mut Vec<WaterDropShape>,
+                  x: usize, y: usize, z: usize,
+                  xz_size: u32, y_size: u32) {
+    locations.push(na::Vector3::new(x, y, z));
+    ib_data.push(WaterDropShape::new(
+        x as u32,
+        y as u32,
+        z as u32,
+        xz_size,
+        y_size)
+    );
 }
 
 fn generate_borders(grid_heights: &[Vec<f32>], borders_h: usize) -> Vec<Vec<Vec<Drop>>> {
@@ -288,44 +304,6 @@ fn generate_vertex_grid(cube: &Vec<Vec<Vec<Drop>>>) -> Vec<Vertex> {
     let end = Utc::now();
     println!("Gen Water Vertex Grid taken: {} ms", (end - start).num_milliseconds());
     vertices
-}
-
-
-fn generate_indices_for_render(cube: &Vec<Vec<Vec<Drop>>>) -> Vec<u32> {
-    let start = Utc::now();
-
-    let mut indices: Vec<u32> = Vec::with_capacity(cube.len().pow(3) * 6);
-
-    let cols = cube[0].len();
-    let drops = cube[0][0].len();
-    let top_left_offset = (drops) as u32;
-    let bot_left_offset = (drops * (cols + 1)) as u32;
-    let bot_right_offset = (drops * cols) as u32;
-    let mut cur_index: u32 = 0;
-
-    for side in cube {
-        for col in side {
-            for drop in col {
-                match drop {
-                    Drop::Water => {
-                        indices.push(cur_index);
-                        indices.push((cur_index + bot_left_offset));
-                        indices.push((cur_index + top_left_offset));
-
-                        indices.push(cur_index);
-                        indices.push((cur_index + bot_right_offset));
-                        indices.push((cur_index + bot_left_offset));
-                    }
-                    _ => ()
-                }
-                cur_index += 1;
-            }
-        }
-    }
-
-    let end = Utc::now();
-    println!("Water Indices Recalculation done, taken {} ms", (end - start).num_milliseconds());
-    indices
 }
 
 impl uniform::HasUniform<MVP> for Water {
