@@ -20,7 +20,6 @@ impl From<KeyStatus> for bool {
 pub enum Actions {
     Flush,
     AddWater,
-    RemoveWater,
     WaveS,
     WaveN,
     WaveE,
@@ -32,7 +31,6 @@ pub enum Actions {
 pub struct Controls {
     pub flush:          KeyStatus,
     pub add_water:      KeyStatus,
-    pub remove_water:   KeyStatus,
     pub wave_s:         KeyStatus,
     pub wave_n:         KeyStatus,
     pub wave_e:         KeyStatus,
@@ -50,7 +48,6 @@ impl Controls {
         Controls {
             flush:          KeyStatus::Released,
             add_water:      KeyStatus::Released,
-            remove_water:   KeyStatus::Released,
             wave_s:         KeyStatus::Released,
             wave_n:         KeyStatus::Released,
             wave_e:         KeyStatus::Released,
@@ -71,7 +68,6 @@ impl Controls {
         match key {
             Keycode::F =>       self.flush      = status,
             Keycode::W =>       self.add_water  = status,
-            Keycode::S =>       self.remove_water = status,
             Keycode::Num8 =>    self.wave_n     = status,
             Keycode::Num2 =>    self.wave_s     = status,
             Keycode::Num4 =>    self.wave_w     = status,
@@ -106,7 +102,6 @@ impl Controls {
         match action {
             Actions::Flush    => self.flush      = KeyStatus::Released,
             Actions::AddWater => self.add_water  = KeyStatus::Released,
-            Actions::RemoveWater => self.remove_water = KeyStatus::Released,
             Actions::WaveN    => self.wave_n     = KeyStatus::Released,
             Actions::WaveS    => self.wave_s     = KeyStatus::Released,
             Actions::WaveE    => self.wave_e     = KeyStatus::Released,

@@ -165,6 +165,7 @@ impl Water {
 
     fn fill_water_level(&mut self, level: usize) {
         let start = Utc::now();
+
         let xz_size = self.grid.len() as u32;
         let y_size = self.water_level_max as u32;
         let mut cur_water_idx_x = 0;
@@ -197,6 +198,27 @@ impl Water {
         self.ebo.dynamic_draw_data(&self.ib_data);
         self.ebo.set_elem_count(self.ib_data.len() * 6);
         self.ebo.unbind();
+        self.update_vao();
+    }
+
+    pub fn flush(&mut self) {
+        self.ib_data.clear();
+        self.locations.clear();
+        self.water_level = 0;
+
+        for side in &mut self.grid {
+            for col in side {
+                for drop in col {
+                    *drop = match drop {
+                        Drop::Water => Drop::Empty,
+                        Drop::Empty => Drop::Empty,
+                        Drop::Border => Drop::Border,
+                    }
+                }
+            }
+        }
+
+        self.update_ebo(&vec![]);
         self.update_vao();
     }
 

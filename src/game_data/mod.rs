@@ -66,7 +66,6 @@ impl GameData {
     pub fn process_input(&mut self) -> Result<(), failure::Error> {
         if self.controls.flush.into() { self.action_flush() };
         if self.controls.add_water.into() { self.action_add_water() };        // TODO: rename inc_water / dec_water
-        if self.controls.remove_water.into() { self.action_remove_water() };
         if self.controls.wave_n.into() { self.action_wave_n() };
         if self.controls.wave_s.into() { self.action_wave_s() };
         if self.controls.wave_w.into() { self.action_wave_w() };
@@ -112,19 +111,15 @@ impl GameData {
     // }
 
     fn action_flush(&mut self) {
+        println!("FLUSH!");
         self.controls.reset_action(Actions::Flush);
-        println!("FLUSH!")
+        self.water.flush();
     }
 
     fn action_add_water(&mut self) {
         println!("ADD WATER");
         self.controls.reset_action(Actions::AddWater);
         self.water.increase_water_level();
-    }
-
-    fn action_remove_water(&mut self) {
-        println!("REMOVE WATER (no action)");
-        self.controls.reset_action(Actions::RemoveWater);
     }
 
     fn action_wave_s(&mut self) {
