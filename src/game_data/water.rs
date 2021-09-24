@@ -222,6 +222,13 @@ impl Water {
         self.update_vao();
     }
 
+    pub fn loop_add_water(&mut self) {
+        match self.water_level {
+            level if level + 1 >= self.water_level_max / 2 => self.flush(),
+            _ => self.increase_water_level(),
+        }
+    }
+
     pub fn print_col(&self, coord: (usize, usize)) {
         for elem in &self.grid[coord.0][coord.1] {
             print!("{:?} ", elem);
