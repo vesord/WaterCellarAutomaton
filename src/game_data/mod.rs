@@ -32,7 +32,7 @@ impl GameData {
         let viewport = gl_render::Viewport::for_window(900, 700); // TODO add size to config
         viewport.use_it(&gl);
 
-        let grid = Grid::new(&res, grid_path, 20, GridingAlgo::RadialBasisFunction)?;  // TODO: add size to config (200 in subj)
+        let grid = Grid::new(&res, grid_path, 200, GridingAlgo::RadialBasisFunction)?;  // TODO: add size to config (200 in subj)
 
         let mut surface = Surface::new(&res, &gl)?;
         surface.set_grid(grid.get_data())?;                     // TODO: move to ::new()
@@ -80,7 +80,7 @@ impl GameData {
     pub fn render(&self) {
         self.color_buffer.clear(&self.gl);
         self.surface.render(&self.gl, gl::TRIANGLES); // TODO: add key for changing render mode
-        self.water.render(&self.gl, gl::LINE_STRIP);
+        self.water.render(&self.gl, gl::TRIANGLES);
 
         // TODO: depth buffer
         unsafe {

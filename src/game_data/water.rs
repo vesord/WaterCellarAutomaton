@@ -170,9 +170,9 @@ impl Water {
         let mut cur_water_idx_x = 0;
         let mut cur_water_idx_z = 0;
 
-        for side in &mut self.grid {
+        for side in self.grid.split_last_mut().unwrap().1 {     // unwrap assumes self.grid is not empty
             cur_water_idx_x = 0;
-            for col in side {
+            for col in side.split_last_mut().unwrap().1 {
                 *col.index_mut(level) = match col.index(level) {
                     Drop::Empty => {
                         add_water_drop(&mut self.locations, &mut self.ib_data,
