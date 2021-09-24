@@ -12,6 +12,7 @@ use sdl2::event::{Event, WindowEvent};
 use game_data::{controls::KeyStatus, GameData};
 use crate::initialization::{create_window, set_gl_attr};
 use std::env;
+use std::time::{SystemTime, Duration};
 
 mod debug;
 mod initialization;
@@ -46,6 +47,8 @@ fn run(grid_path: &str) -> Result<(), failure::Error> {
     gd.init();
 
     'main: loop {
+        gd.modulate();
+
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit {..} => break 'main,
@@ -61,7 +64,6 @@ fn run(grid_path: &str) -> Result<(), failure::Error> {
             }
         }
         gd.process_input()?;
-        gd.modulate();
         gd.render();
         window.gl_swap_window();
     }

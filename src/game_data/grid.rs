@@ -31,7 +31,7 @@ pub enum Error {
 impl Grid {
     pub fn new(res: &Resources, grid_path: &str, size: usize, _griding_algo: GridingAlgo) -> Result<Grid, failure::Error> {
         let input_array = Grid::get_user_grid(res, grid_path)?;
-        let input_array = Grid::add_zeros_to_edges(&input_array, 10);    // TODO: config
+        let input_array = Grid::add_zeros_to_edges(&input_array, 30);    // TODO: config
         let grid = Grid::make_grid(size, &input_array, GridingAlgo::RadialBasisFunction);   // TODO: pass griging_algo
         Ok(Grid {
             poles: input_array,

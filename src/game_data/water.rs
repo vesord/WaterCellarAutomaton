@@ -191,7 +191,7 @@ impl Water {
 
         let end = Utc::now();
 
-        println!("Fill water level done, taken {} ms", (end - start).num_milliseconds());
+        // println!("Fill water level done, taken {} ms", (end - start).num_milliseconds());
 
         // TODO: refactor
         self.ebo.bind();
@@ -202,21 +202,25 @@ impl Water {
     }
 
     pub fn flush(&mut self) {
+        self.water_level = 0;
         self.ib_data.clear();
+        for loc in &self.locations {
+            self.grid[loc.z][loc.x][loc.y] = Drop::Empty;
+        }
         self.locations.clear();
         self.water_level = 0;
 
-        for side in &mut self.grid {
-            for col in side {
-                for drop in col {
-                    *drop = match drop {
-                        Drop::Water => Drop::Empty,
-                        Drop::Empty => Drop::Empty,
-                        Drop::Border => Drop::Border,
-                    }
-                }
-            }
-        }
+        // for side in &mut self.grid {
+        //     for col in side {
+        //         for drop in col {
+        //             *drop = match drop {
+        //                 Drop::Water => Drop::Empty,
+        //                 Drop::Empty => Drop::Empty,
+        //                 Drop::Border => Drop::Border,
+        //             }
+        //         }
+        //     }
+        // }
 
         self.update_ebo(&vec![]);
         self.update_vao();
