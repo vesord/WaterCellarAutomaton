@@ -262,7 +262,7 @@ fn generate_borders(grid_heights: &[Vec<f32>], borders_h: usize) -> Vec<Vec<Vec<
 
         for elem in row {
             let mut col: Vec<Drop> = Vec::with_capacity(borders_h);
-            let cur_height = (elem / step_h).ceil() as usize;
+            let cur_height = (elem / step_h).floor() as usize;
             for _i in 0..cur_height {
                 col.push(Drop::Border);
             }
