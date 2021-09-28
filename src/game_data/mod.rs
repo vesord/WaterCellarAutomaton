@@ -25,6 +25,9 @@ pub struct GameData {
     pub controls: Controls,
 }
 
+pub const GRID_WIDTH: usize = 200;
+pub const GRID_HEIGHT: usize = 200;
+
 impl GameData {
     pub fn new(gl: &gl::Gl, res: &Resources, grid_path: &str) -> Result<GameData, failure::Error> {
         let color_buffer: gl_render::ColorBuffer = (0.3, 0.3, 0.5).into(); // TODO add to config
@@ -33,7 +36,7 @@ impl GameData {
         let viewport = gl_render::Viewport::for_window(900, 700); // TODO add size to config
         viewport.use_it(&gl);
 
-        let grid = Grid::new(&res, grid_path, 200, GridingAlgo::RadialBasisFunction)?;  // TODO: add size to config (200 in subj)
+        let grid = Grid::new(&res, grid_path, GRID_WIDTH, GridingAlgo::RadialBasisFunction)?;  // TODO: add size to config (200 in subj)
 
         let mut surface = Surface::new(&res, &gl)?;
         surface.set_grid(grid.get_data())?;                     // TODO: move to ::new()
@@ -61,6 +64,7 @@ impl GameData {
     pub fn modulate(&mut self) -> Result<(), failure::Error> {
         // self.mvp.model_rotate_y(3.14 / 360.);
         // self.water.loop_add_water();
+        self.water.modulate();
         self.apply_uniforms().map_err(err_msg)
     }
 
