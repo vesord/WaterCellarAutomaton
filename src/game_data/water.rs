@@ -7,6 +7,7 @@ use failure::err_msg;
 extern crate chrono;
 use chrono::prelude::*;
 use std::ops::{Index, IndexMut};
+use crate::game_data::GRID_WIDTH;
 
 #[derive(VertexAttribPointers)]
 #[derive(Copy, Clone, Debug)]
@@ -51,7 +52,27 @@ impl TriangleIdx {
     }
 
     pub fn move_north(&mut self) {
+        self.i0 -= (WATER_GRID_WIDTH * WATER_GIRD_HEIGHT) as u32;
+        self.i1 -= (WATER_GRID_WIDTH * WATER_GIRD_HEIGHT) as u32;
+        self.i2 -= (WATER_GRID_WIDTH * WATER_GIRD_HEIGHT) as u32;
+    }
 
+    pub fn move_south(&mut self) {
+        self.i0 += (WATER_GRID_WIDTH * WATER_GIRD_HEIGHT) as u32;
+        self.i1 += (WATER_GRID_WIDTH * WATER_GIRD_HEIGHT) as u32;
+        self.i2 += (WATER_GRID_WIDTH * WATER_GIRD_HEIGHT) as u32;
+    }
+
+    pub fn move_west(&mut self) {
+        self.i0 -= (WATER_GIRD_HEIGHT) as u32;
+        self.i1 -= (WATER_GIRD_HEIGHT) as u32;
+        self.i2 -= (WATER_GIRD_HEIGHT) as u32;
+    }
+
+    pub fn move_east(&mut self) {
+        self.i0 += (WATER_GIRD_HEIGHT) as u32;
+        self.i1 += (WATER_GIRD_HEIGHT) as u32;
+        self.i2 += (WATER_GIRD_HEIGHT) as u32;
     }
 }
 
@@ -122,6 +143,9 @@ pub struct Water {
     vao: buffer::VertexArray,
 }
 
+const WATER_GRID_WIDTH: usize = GRID_WIDTH;
+const WATER_GIRD_HEIGHT: usize = 100;
+
 impl Water {
     pub fn new(res: &Resources, gl: &gl::Gl) -> Result<Water, failure::Error> {
         let program = gl_render::Program::from_res(gl, res, "shaders/water")?;
@@ -188,16 +212,17 @@ impl Water {
     }
 
     pub fn set_grid(&mut self, grid_heights: &[Vec<f32>]) {
-        let borders_h = grid_heights.len();
+        let borders_h = WATER_GIRD_HEIGHT;
         self.grid = generate_borders(grid_heights, borders_h);
-        self.water_level_max = borders_h; // TODO: add xyz_size to config
+        self.water_level_max = borders_h;
         let vertices = generate_vertex_grid(&self.grid);
         self.update_vbo(&vertices);
 
-        for z in 0..5 {
-            for i in 0..200 {
-                for j in 0..200 {
-                    add_particle(&mut self.locations, &mut self.ib_data, i, 100 + z, j, 200, 200);
+        for z in 0..2 {
+            for i in 0..WATER_GRID_WIDTH -1  {
+                for j in 0..WATER_GRID_WIDTH - 1 {
+                    add_particle(&mut self.locations, &mut self.ib_data, i, WATER_GIRD_HEIGHT - 1 - z, j, WATER_GRID_WIDTH as u32, WATER_GIRD_HEIGHT as u32);
+                    self.grid[j][i][WATER_GIRD_HEIGHT - 1 - z] = Particle::Water;
                 }
             }
         }
@@ -249,9 +274,9 @@ impl Water {
         let start = Utc::now();
 
         for (loc, square) in self.locations.iter_mut().zip(&mut self.ib_data) {
-            let x = loc.x.clamp(1, 199);
-            let y = loc.y.clamp(1, 199);    // TODO: add to config
-            let z = loc.z.clamp(1, 199);
+            let x = loc.x;
+            let y = loc.y;
+            let z = loc.z;
 
             if self.grid[z][x][y - 1] == Particle::Empty {  // Bottom
                 self.grid[z][x][y] = Particle::Empty;
@@ -259,29 +284,29 @@ impl Water {
                 loc.y = loc.y - 1;
                 square.move_down();
             }
-            else if self.grid[z - 1][x][y] == Particle::Empty {
+            else if (z > 0) && (self.grid[z - 1][x][y] == Particle::Empty) {
                 self.grid[z][x][y] = Particle::Empty;
                 self.grid[z - 1][x][y] = Particle::Water;
                 loc.z = loc.z - 1;
                 square.move_north();
             }
-            else if self.grid[z + 1][x][y] == Particle::Empty {
-                self.grid[z][x][y] = Particle::Empty;
-                self.grid[z + 1][x][y] = Particle::Water;
-                loc.z = loc.z + 1;
-                square.move_south();
-            }
-            else if self.grid[z][x - 1][y] == Particle::Empty {
+            else if (x > 0) && (self.grid[z][x - 1][y] == Particle::Empty) {
                 self.grid[z][x][y] = Particle::Empty;
                 self.grid[z][x - 1][y] = Particle::Water;
                 loc.x = loc.x - 1;
                 square.move_west();
             }
-            else if self.grid[z][x + 1][y] == Particle::Empty {
+            else if (x < WATER_GRID_WIDTH - 2) && (self.grid[z][x + 1][y] == Particle::Empty) {
                 self.grid[z][x][y] = Particle::Empty;
                 self.grid[z][x + 1][y] = Particle::Water;
                 loc.x = loc.x + 1;
                 square.move_east();
+            }
+            else if (z < WATER_GRID_WIDTH - 2) && (self.grid[z + 1][x][y] == Particle::Empty) {
+                self.grid[z][x][y] = Particle::Empty;
+                self.grid[z + 1][x][y] = Particle::Water;
+                loc.z = loc.z + 1;
+                square.move_south();
             }
         }
 
@@ -292,6 +317,99 @@ impl Water {
 
         println!("Modulation done, elems: {}, time {} ms", self.locations.len(), (end-start).num_milliseconds());
     }
+
+    pub fn dbg_move_north(&mut self) {
+        for (loc, square) in self.locations.iter_mut().zip(&mut self.ib_data) {
+            let x = loc.x;
+            let y = loc.y;
+            let z = loc.z;
+
+            if (z > 0) && (self.grid[z - 1][x][y] == Particle::Empty) {
+                self.grid[z][x][y] = Particle::Empty;
+                self.grid[z - 1][x][y] = Particle::Water;
+                loc.z = loc.z - 1;
+                square.move_north();
+            }
+        }
+
+        self.update_ebo();
+        self.update_vao();
+    }
+
+    pub fn dbg_move_south(&mut self) {
+        for (loc, square) in self.locations.iter_mut().zip(&mut self.ib_data) {
+            let x = loc.x;
+            let y = loc.y;
+            let z = loc.z;
+
+            if (z < WATER_GRID_WIDTH - 2) && (self.grid[z + 1][x][y] == Particle::Empty) {
+                self.grid[z][x][y] = Particle::Empty;
+                self.grid[z + 1][x][y] = Particle::Water;
+                loc.z = loc.z + 1;
+                square.move_south();
+            }
+        }
+
+        self.update_ebo();
+        self.update_vao();
+
+    }
+
+    pub fn dbg_move_west(&mut self) {
+        for (loc, square) in self.locations.iter_mut().zip(&mut self.ib_data) {
+            let x = loc.x;
+            let y = loc.y;
+            let z = loc.z;
+
+            if (x > 0) && (self.grid[z][x - 1][y] == Particle::Empty) {
+                self.grid[z][x][y] = Particle::Empty;
+                self.grid[z][x - 1][y] = Particle::Water;
+                loc.x = loc.x - 1;
+                square.move_west();
+            }
+        }
+
+        self.update_ebo();
+        self.update_vao();
+    }
+
+    pub fn dbg_move_east(&mut self) {
+        for (loc, square) in self.locations.iter_mut().zip(&mut self.ib_data) {
+            let x = loc.x;
+            let y = loc.y;
+            let z = loc.z;
+
+            if (x < WATER_GRID_WIDTH - 2) && (self.grid[z][x + 1][y] == Particle::Empty) {
+                self.grid[z][x][y] = Particle::Empty;
+                self.grid[z][x + 1][y] = Particle::Water;
+                loc.x = loc.x + 1;
+                square.move_east();
+            }
+        }
+
+        self.update_ebo();
+        self.update_vao();
+    }
+
+    pub fn dbg_move_down(&mut self) {
+        for (loc, square) in self.locations.iter_mut().zip(&mut self.ib_data) {
+            let x = loc.x;
+            let y = loc.y;
+            let z = loc.z;
+
+            if self.grid[z][x][y - 1] == Particle::Empty {  // Bottom
+                self.grid[z][x][y] = Particle::Empty;
+                self.grid[z][x][y - 1] = Particle::Water;
+                loc.y = loc.y - 1;
+                square.move_down();
+            }
+        }
+
+        self.update_ebo();
+        self.update_vao();
+
+    }
+
 
     fn fill_water_level(&mut self, level: usize) {
         let start = Utc::now();

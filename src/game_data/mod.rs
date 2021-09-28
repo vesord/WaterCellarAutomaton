@@ -25,8 +25,7 @@ pub struct GameData {
     pub controls: Controls,
 }
 
-pub const GRID_WIDTH: usize = 200;
-pub const GRID_HEIGHT: usize = 200;
+pub const GRID_WIDTH: usize = 100;
 
 impl GameData {
     pub fn new(gl: &gl::Gl, res: &Resources, grid_path: &str) -> Result<GameData, failure::Error> {
@@ -118,7 +117,7 @@ impl GameData {
     fn action_flush(&mut self) {
         println!("FLUSH!");
         self.controls.reset_action(Actions::Flush);
-        self.water.flush();
+        self.water.modulate();
     }
 
     fn action_add_water(&mut self) {
@@ -128,23 +127,27 @@ impl GameData {
     }
 
     fn action_wave_s(&mut self) {
+        println!("WAVE SOUTH");
         self.controls.reset_action(Actions::WaveS);
-        println!("WAVE SOUTH")
+        self.water.dbg_move_south();
     }
 
     fn action_wave_n(&mut self) {
+        println!("WAVE NORTH");
         self.controls.reset_action(Actions::WaveN);
-        println!("WAVE NORTH")
+        self.water.dbg_move_north();
     }
 
     fn action_wave_e(&mut self) {
+        println!("WAVE EAST");
         self.controls.reset_action(Actions::WaveE);
-        println!("WAVE EAST")
+        self.water.dbg_move_east();
     }
 
     fn action_wave_w(&mut self) {
+        println!("WAVE WEST");
         self.controls.reset_action(Actions::WaveW);
-        println!("WAVE WEST")
+        self.water.dbg_move_west();
     }
 
     fn action_cam_capture(&mut self) -> Result<(), failure::Error> {
