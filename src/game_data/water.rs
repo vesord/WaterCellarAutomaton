@@ -43,20 +43,22 @@ impl From<(u32, u32, u32)> for TriangleIdx {
     }
 }
 
+const POINTS_PER_PARTICLE: usize = 6;
+
 #[repr(C, packed)]
-struct WaterDropShape {
+struct ParticleShape {
     t0: TriangleIdx,
     t1: TriangleIdx,
 }
 
-impl WaterDropShape {
-    pub fn new(x: u32, y: u32, z: u32, xz_size: u32, y_size: u32) -> WaterDropShape {
+impl ParticleShape {
+    pub fn new(x: u32, y: u32, z: u32, xz_size: u32, y_size: u32) -> ParticleShape {
         let p0 = z * xz_size * y_size + x * xz_size + y;    // Top left
         let p1  = p0 + y_size;                              // Top right
         let p2 = p0 + y_size * (xz_size + 1);               // Bot right
         let p3 = p0 + y_size * xz_size;                     // Bot left
 
-        WaterDropShape {
+        ParticleShape {
             t0: (p0, p1, p2).into(),
             t1: (p0, p3, p2).into(),
         }
@@ -64,7 +66,7 @@ impl WaterDropShape {
 }
 
 #[derive(Debug)]
-enum Drop {
+enum Particle {
     Empty,
     Border,
     Water,
@@ -73,9 +75,9 @@ enum Drop {
 pub struct Water {
     water_level_max: usize,
     water_level: usize,
-    grid: Vec<Vec<Vec<Drop>>>,
+    grid: Vec<Vec<Vec<Particle>>>,
     locations: Vec<na::Vector3<usize>>,
-    ib_data: Vec<WaterDropShape>,
+    ib_data: Vec<ParticleShape>,
     program: gl_render::Program,
     vbo: buffer::ArrayBuffer,
     ebo: buffer::ElementArrayBuffer,
@@ -153,8 +155,7 @@ impl Water {
         self.water_level_max = borders_h;
         let vertices = generate_vertex_grid(&self.grid);
         self.update_vbo(&vertices);
-        let indices: Vec<u32> = vec![];
-        self.update_ebo(&indices);
+        self.update_ebo();
     }
 
     pub fn increase_water_level(&mut self) {
@@ -175,14 +176,14 @@ impl Water {
             cur_water_idx_x = 0;
             for col in side.split_last_mut().unwrap().1 {
                 *col.index_mut(level) = match col.index(level) {
-                    Drop::Empty => {
+                    Particle::Empty => {
                         add_water_drop(&mut self.locations, &mut self.ib_data,
                                        cur_water_idx_x, level, cur_water_idx_z,
                                        xz_size, y_size);
-                        Drop::Water
+                        Particle::Water
                     },
-                    Drop::Water => Drop::Water,
-                    Drop::Border => Drop::Border,
+                    Particle::Water => Particle::Water,
+                    Particle::Border => Particle::Border,
                 };
                 cur_water_idx_x += 1;
             }
@@ -193,11 +194,7 @@ impl Water {
 
         // println!("Fill water level done, taken {} ms", (end - start).num_milliseconds());
 
-        // TODO: refactor
-        self.ebo.bind();
-        self.ebo.dynamic_draw_data(&self.ib_data);
-        self.ebo.set_elem_count(self.ib_data.len() * 6);
-        self.ebo.unbind();
+        self.update_ebo();
         self.update_vao();
     }
 
@@ -205,7 +202,7 @@ impl Water {
         self.water_level = 0;
         self.ib_data.clear();
         for loc in &self.locations {
-            self.grid[loc.z][loc.x][loc.y] = Drop::Empty;
+            self.grid[loc.z][loc.x][loc.y] = Particle::Empty;
         }
         self.locations.clear();
         self.water_level = 0;
@@ -222,7 +219,7 @@ impl Water {
         //     }
         // }
 
-        self.update_ebo(&vec![]);
+        self.update_ebo();
         self.update_vao();
     }
 
@@ -245,10 +242,10 @@ impl Water {
         self.vbo.unbind();
     }
 
-    fn update_ebo(&mut self, indices: &[u32]) {
+    fn update_ebo(&mut self) {
         self.ebo.bind();
-        self.ebo.set_elem_count(indices.len());
-        self.ebo.dynamic_draw_data(indices);
+        self.ebo.dynamic_draw_data(&self.ib_data);
+        self.ebo.set_elem_count(self.ib_data.len() * POINTS_PER_PARTICLE);
         self.ebo.unbind();
     }
 
@@ -260,24 +257,13 @@ impl Water {
         self.vao.unbind();
         self.ebo.unbind();
     }
-
-    fn update_buffers(&mut self, vertices: &[Vertex], indices: &[u32]) {
-        let start = Utc::now();
-
-        self.update_vbo(vertices);
-        self.update_ebo(indices);
-        self.update_vao();
-
-        let end = Utc::now();
-        println!("Opengl Buffers Update done, taken {} ms", (end - start).num_milliseconds());
-    }
 }
 
-fn add_water_drop(locations: &mut Vec<na::Vector3<usize>>, ib_data: &mut Vec<WaterDropShape>,
+fn add_water_drop(locations: &mut Vec<na::Vector3<usize>>, ib_data: &mut Vec<ParticleShape>,
                   x: usize, y: usize, z: usize,
                   xz_size: u32, y_size: u32) {
     locations.push(na::Vector3::new(x, y, z));
-    ib_data.push(WaterDropShape::new(
+    ib_data.push(ParticleShape::new(
         x as u32,
         y as u32,
         z as u32,
@@ -286,21 +272,21 @@ fn add_water_drop(locations: &mut Vec<na::Vector3<usize>>, ib_data: &mut Vec<Wat
     );
 }
 
-fn generate_borders(grid_heights: &[Vec<f32>], borders_h: usize) -> Vec<Vec<Vec<Drop>>> {
-    let mut borders: Vec<Vec<Vec<Drop>>> = vec![];
+fn generate_borders(grid_heights: &[Vec<f32>], borders_h: usize) -> Vec<Vec<Vec<Particle>>> {
+    let mut borders: Vec<Vec<Vec<Particle>>> = vec![];
     let step_h = 1. / (grid_heights.len() - 1) as f32;
 
     for row in grid_heights {
-        let mut side: Vec<Vec<Drop>> = Vec::with_capacity(grid_heights.len());
+        let mut side: Vec<Vec<Particle>> = Vec::with_capacity(grid_heights.len());
 
         for elem in row {
-            let mut col: Vec<Drop> = Vec::with_capacity(borders_h);
+            let mut col: Vec<Particle> = Vec::with_capacity(borders_h);
             let cur_height = (elem / step_h).floor() as usize;
             for _i in 0..cur_height {
-                col.push(Drop::Border);
+                col.push(Particle::Border);
             }
             for _i in cur_height..grid_heights.len() {
-                col.push(Drop::Empty);
+                col.push(Particle::Empty);
             }
             side.push(col);
         }
@@ -309,7 +295,7 @@ fn generate_borders(grid_heights: &[Vec<f32>], borders_h: usize) -> Vec<Vec<Vec<
     borders
 }
 
-fn generate_vertex_grid(cube: &Vec<Vec<Vec<Drop>>>) -> Vec<Vertex> {
+fn generate_vertex_grid(cube: &Vec<Vec<Vec<Particle>>>) -> Vec<Vertex> {
     let start = Utc::now();
 
     let mut vertices: Vec<Vertex> = Vec::with_capacity(cube.len() * cube[0].len() * cube[0][0].len());

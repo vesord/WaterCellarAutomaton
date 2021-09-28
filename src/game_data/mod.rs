@@ -60,7 +60,7 @@ impl GameData {
 
     pub fn modulate(&mut self) -> Result<(), failure::Error> {
         // self.mvp.model_rotate_y(3.14 / 360.);
-        self.water.loop_add_water();
+        // self.water.loop_add_water();
         self.apply_uniforms().map_err(err_msg)
     }
 
