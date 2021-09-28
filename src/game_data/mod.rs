@@ -25,7 +25,7 @@ pub struct GameData {
     pub controls: Controls,
 }
 
-pub const GRID_WIDTH: usize = 100;
+pub const GRID_WIDTH: usize = 200;
 
 impl GameData {
     pub fn new(gl: &gl::Gl, res: &Resources, grid_path: &str) -> Result<GameData, failure::Error> {
@@ -63,7 +63,7 @@ impl GameData {
     pub fn modulate(&mut self) -> Result<(), failure::Error> {
         // self.mvp.model_rotate_y(3.14 / 360.);
         // self.water.loop_add_water();
-        self.water.add_rain_particles();
+        // self.water.add_rain_particles();
         self.water.modulate();
         self.apply_uniforms().map_err(err_msg)
     }
@@ -118,7 +118,7 @@ impl GameData {
     fn action_flush(&mut self) {
         println!("FLUSH!");
         self.controls.reset_action(Actions::Flush);
-        // self.water.dbg_print_col((2, 2));
+        self.water.flush();
     }
 
     fn action_add_water(&mut self) {

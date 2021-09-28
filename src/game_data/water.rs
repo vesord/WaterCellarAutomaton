@@ -415,7 +415,7 @@ impl Water {
     }
 
     pub fn add_wave_particles(&mut self, dir: WaveDirection) {
-        let y_range = 0..(WATER_GIRD_HEIGHT as f32 * 0.1) as usize;
+        let y_range = 0..(WATER_GIRD_HEIGHT / 3) as usize;
 
         let (z_range, x_range) = match dir {
             WaveDirection::South => ((WATER_GRID_WIDTH - 2 .. WATER_GRID_WIDTH - 1), (0..WATER_GRID_WIDTH - 1)),
@@ -434,6 +434,9 @@ impl Water {
                 }
             }
         }
+
+        self.update_ebo();
+        self.update_vao();
     }
 
     fn add_particle(&mut self, x: usize, y: usize, z: usize) {
