@@ -1,13 +1,17 @@
+extern crate chrono;
+extern crate rand;
+
 use gl_render::{data, buffer, uniform};
 use resources::Resources;
 use crate::camera::MVP;
 use std::ffi::CString;
 use failure::err_msg;
 
-extern crate chrono;
 use chrono::prelude::*;
 use std::ops::{Index, IndexMut};
 use crate::game_data::GRID_WIDTH;
+use self::rand::Rng;
+use std::borrow::Borrow;
 
 #[derive(VertexAttribPointers)]
 #[derive(Copy, Clone, Debug)]
@@ -86,8 +90,8 @@ struct ParticleShape {
 
 impl ParticleShape {
     pub fn new(x: u32, y: u32, z: u32, xz_size: u32, y_size: u32) -> ParticleShape {
-        let p0 = z * xz_size * y_size + x * xz_size + y;    // Top left
-        let p1  = p0 + y_size;                              // Top right
+        let p0 = z * xz_size * y_size + x * y_size + y;    // Top left
+        let p1 = p0 + y_size;                               // Top right
         let p2 = p0 + y_size * (xz_size + 1);               // Bot right
         let p3 = p0 + y_size * xz_size;                     // Bot left
 
@@ -131,6 +135,13 @@ enum Particle {
     Water,
 }
 
+pub enum WaveDirection {
+    North,
+    South,
+    East,
+    West
+}
+
 pub struct Water {
     water_level_max: usize,
     water_level: usize,
@@ -144,7 +155,9 @@ pub struct Water {
 }
 
 const WATER_GRID_WIDTH: usize = GRID_WIDTH;
-const WATER_GIRD_HEIGHT: usize = 100;
+const WATER_GIRD_HEIGHT: usize = GRID_WIDTH / 2;
+const WATER_RAIN_ITERATIONS: usize =
+    ((WATER_GRID_WIDTH * WATER_GIRD_HEIGHT) as f32 * 0.0001) as usize + 1;
 
 impl Water {
     pub fn new(res: &Resources, gl: &gl::Gl) -> Result<Water, failure::Error> {
@@ -218,16 +231,14 @@ impl Water {
         let vertices = generate_vertex_grid(&self.grid);
         self.update_vbo(&vertices);
 
-        for z in 0..2 {
-            for i in 0..WATER_GRID_WIDTH -1  {
-                for j in 0..WATER_GRID_WIDTH - 1 {
-                    add_particle(&mut self.locations, &mut self.ib_data, i, WATER_GIRD_HEIGHT - 1 - z, j, WATER_GRID_WIDTH as u32, WATER_GIRD_HEIGHT as u32);
-                    self.grid[j][i][WATER_GIRD_HEIGHT - 1 - z] = Particle::Water;
-                }
-            }
-        }
-
-
+        // for z in 0..2 {
+        //     for i in 0..WATER_GRID_WIDTH / 4  {
+        //         for j in 0..WATER_GRID_WIDTH / 4 {
+        //             self.add_particle(i, WATER_GIRD_HEIGHT - 1 - z, j);
+        //             self.grid[j][i][WATER_GIRD_HEIGHT - 1 - z] = Particle::Water;
+        //         }
+        //     }
+        // }
         self.update_ebo();
         self.update_vao();
     }
@@ -278,10 +289,46 @@ impl Water {
             let y = loc.y;
             let z = loc.z;
 
+            if loc.y == 0 {
+                println!("Loc 0: ({}, {}, {})", x, y, z);
+            }
+
             if self.grid[z][x][y - 1] == Particle::Empty {  // Bottom
                 self.grid[z][x][y] = Particle::Empty;
                 self.grid[z][x][y - 1] = Particle::Water;
                 loc.y = loc.y - 1;
+                square.move_down();
+            }
+            else if (z > 0) && (y > 0) && (self.grid[z - 1][x][y - 1] == Particle::Empty) {
+                self.grid[z][x][y] = Particle::Empty;
+                self.grid[z - 1][x][y - 1] = Particle::Water;
+                loc.z = loc.z - 1;
+                loc.y = loc.y - 1;
+                square.move_north();
+                square.move_down();
+            }
+            else if (x > 0) && (y > 0) && (self.grid[z][x - 1][y - 1] == Particle::Empty) {
+                self.grid[z][x][y] = Particle::Empty;
+                self.grid[z][x - 1][y - 1] = Particle::Water;
+                loc.x = loc.x - 1;
+                loc.y = loc.y - 1;
+                square.move_west();
+                square.move_down();
+            }
+            else if (x < WATER_GRID_WIDTH - 2) && (y > 0) && (self.grid[z][x + 1][y - 1] == Particle::Empty) {
+                self.grid[z][x][y] = Particle::Empty;
+                self.grid[z][x + 1][y - 1] = Particle::Water;
+                loc.x = loc.x + 1;
+                loc.y = loc.y - 1;
+                square.move_east();
+                square.move_down();
+            }
+            else if (z < WATER_GRID_WIDTH - 2) && (y > 0) && (self.grid[z + 1][x][y - 1] == Particle::Empty) {
+                self.grid[z][x][y] = Particle::Empty;
+                self.grid[z + 1][x][y - 1] = Particle::Water;
+                loc.z = loc.z + 1;
+                loc.y = loc.y - 1;
+                square.move_south();
                 square.move_down();
             }
             else if (z > 0) && (self.grid[z - 1][x][y] == Particle::Empty) {
@@ -316,6 +363,111 @@ impl Water {
         let end = Utc::now();
 
         println!("Modulation done, elems: {}, time {} ms", self.locations.len(), (end-start).num_milliseconds());
+    }
+
+    fn fill_water_level(&mut self, level: usize) {
+        let start = Utc::now();
+
+        let xz_size = WATER_GRID_WIDTH as u32; // TODO: add xyz_size to config
+        let y_size = WATER_GIRD_HEIGHT as u32; // TODO: add xyz_size to config
+        let mut cur_water_idx_x = 0;
+        let mut cur_water_idx_z = 0;
+
+        for side in self.grid.split_last_mut().unwrap().1 {     // unwrap assumes self.grid is not empty
+            cur_water_idx_x = 0;
+            for col in side.split_last_mut().unwrap().1 {
+                *col.index_mut(level) = match col.index(level) {
+                    Particle::Empty => {
+                        add_particle(&mut self.locations, &mut self.ib_data,
+                                     cur_water_idx_x, level, cur_water_idx_z,
+                                     xz_size, y_size);        // TODO: add xyz_size to config
+                        Particle::Water
+                    },
+                    Particle::Water => Particle::Water,
+                    Particle::Border => Particle::Border,
+                };
+                cur_water_idx_x += 1;
+            }
+            cur_water_idx_z += 1;
+        }
+
+        let end = Utc::now();
+
+        // println!("Fill water level done, taken {} ms", (end - start).num_milliseconds());
+
+        self.update_ebo();
+        self.update_vao();
+    }
+
+    pub fn add_rain_particles(&mut self) {
+        for _i in 0..WATER_RAIN_ITERATIONS {
+            let x = rand::thread_rng().gen_range(0..WATER_GRID_WIDTH - 2);
+            let z = rand::thread_rng().gen_range(0..WATER_GRID_WIDTH - 2);
+            let y   = WATER_GIRD_HEIGHT - 2;
+
+            if self.grid[z][x][y] == Particle::Empty {
+                self.grid[z][x][y] = Particle::Water;
+                self.add_particle(x, y, z);
+            }
+        }
+        self.update_ebo();
+        self.update_vao();
+    }
+
+    pub fn add_wave_particles(&mut self, dir: WaveDirection) {
+        let y_range = 0..(WATER_GIRD_HEIGHT as f32 * 0.1) as usize;
+
+        let (z_range, x_range) = match dir {
+            WaveDirection::South => ((WATER_GRID_WIDTH - 2 .. WATER_GRID_WIDTH - 1), (0..WATER_GRID_WIDTH - 1)),
+            WaveDirection::North => ((0..1), (0..WATER_GRID_WIDTH - 1)),
+            WaveDirection::East => ((0..WATER_GRID_WIDTH - 1), (WATER_GRID_WIDTH - 2 .. WATER_GRID_WIDTH - 1)),
+            WaveDirection::West => ((0..WATER_GRID_WIDTH - 1), (0..1)),
+        };
+
+        for z in z_range.clone() {
+            for x in x_range.clone() {
+                for y in y_range.clone() {
+                    if self.grid[z][x][y] == Particle::Empty {
+                        self.grid[z][x][y] = Particle::Water;
+                        self.add_particle(x, y, z);
+                    }
+                }
+            }
+        }
+    }
+
+    fn add_particle(&mut self, x: usize, y: usize, z: usize) {
+        add_particle(&mut self.locations, &mut self.ib_data,
+                     x, y, z,
+                     WATER_GRID_WIDTH as u32, WATER_GIRD_HEIGHT as u32);
+    }
+
+    fn update_vbo(&self, vertices: &[Vertex]) {
+        self.vbo.bind();
+        self.vbo.static_draw_data(vertices);
+        self.vbo.unbind();
+    }
+
+    fn update_ebo(&mut self) {
+        self.ebo.bind();
+        self.ebo.dynamic_draw_data(&self.ib_data);
+        self.ebo.set_elem_count(self.ib_data.len() * POINTS_PER_PARTICLE);
+        self.ebo.unbind();
+    }
+
+    fn update_vao(&self) {
+        self.vao.bind();
+        self.vbo.bind();
+        self.ebo.bind();
+        self.vbo.unbind();
+        self.vao.unbind();
+        self.ebo.unbind();
+    }
+
+    pub fn dbg_print_col(&self, coord: (usize, usize)) {
+        for elem in &self.grid[coord.0][coord.1] {
+            print!("{:?} ", elem);
+        }
     }
 
     pub fn dbg_move_north(&mut self) {
@@ -409,75 +561,6 @@ impl Water {
         self.update_vao();
 
     }
-
-
-    fn fill_water_level(&mut self, level: usize) {
-        let start = Utc::now();
-
-        let xz_size = self.grid.len() as u32; // TODO: add xyz_size to config
-        let y_size = self.water_level_max as u32; // TODO: add xyz_size to config
-        let mut cur_water_idx_x = 0;
-        let mut cur_water_idx_z = 0;
-
-        for side in self.grid.split_last_mut().unwrap().1 {     // unwrap assumes self.grid is not empty
-            cur_water_idx_x = 0;
-            for col in side.split_last_mut().unwrap().1 {
-                *col.index_mut(level) = match col.index(level) {
-                    Particle::Empty => {
-                        add_particle(&mut self.locations, &mut self.ib_data,
-                                     cur_water_idx_x, level, cur_water_idx_z,
-                                     xz_size, y_size);        // TODO: add xyz_size to config
-                        Particle::Water
-                    },
-                    Particle::Water => Particle::Water,
-                    Particle::Border => Particle::Border,
-                };
-                cur_water_idx_x += 1;
-            }
-            cur_water_idx_z += 1;
-        }
-
-        let end = Utc::now();
-
-        // println!("Fill water level done, taken {} ms", (end - start).num_milliseconds());
-
-        self.update_ebo();
-        self.update_vao();
-    }
-
-    fn add_particle(&mut self, x: usize, y: usize, z: usize) {
-        add_particle(&mut self.locations, &mut self.ib_data,
-                     x, y, z,
-                     self.grid.len() as u32, self.water_level_max as u32);
-    }
-
-    pub fn print_col(&self, coord: (usize, usize)) {
-        for elem in &self.grid[coord.0][coord.1] {
-            print!("{:?} ", elem);
-        }
-    }
-
-    fn update_vbo(&self, vertices: &[Vertex]) {
-        self.vbo.bind();
-        self.vbo.static_draw_data(vertices);
-        self.vbo.unbind();
-    }
-
-    fn update_ebo(&mut self) {
-        self.ebo.bind();
-        self.ebo.dynamic_draw_data(&self.ib_data);
-        self.ebo.set_elem_count(self.ib_data.len() * POINTS_PER_PARTICLE);
-        self.ebo.unbind();
-    }
-
-    fn update_vao(&self) {
-        self.vao.bind();
-        self.vbo.bind();
-        self.ebo.bind();
-        self.vbo.unbind();
-        self.vao.unbind();
-        self.ebo.unbind();
-    }
 }
 
 fn add_particle(locations: &mut Vec<na::Vector3<usize>>, ib_data: &mut Vec<ParticleShape>,
@@ -495,10 +578,14 @@ fn add_particle(locations: &mut Vec<na::Vector3<usize>>, ib_data: &mut Vec<Parti
 
 fn generate_borders(grid_heights: &[Vec<f32>], borders_h: usize) -> Vec<Vec<Vec<Particle>>> {
     let mut borders: Vec<Vec<Vec<Particle>>> = vec![];
-    let step_h = 1. / (grid_heights.len() - 1) as f32;
+    let step_h = 1. / (borders_h - 1) as f32;
+
+    println!("Grid_heights rows: {}", grid_heights.len());
+    println!("Grid_heights elems: {}", grid_heights[0].len());
 
     for row in grid_heights {
-        let mut side: Vec<Vec<Particle>> = Vec::with_capacity(grid_heights.len());
+
+        let mut side: Vec<Vec<Particle>> = Vec::with_capacity(WATER_GIRD_HEIGHT);
 
         for elem in row {
             let mut col: Vec<Particle> = Vec::with_capacity(borders_h);
@@ -506,7 +593,7 @@ fn generate_borders(grid_heights: &[Vec<f32>], borders_h: usize) -> Vec<Vec<Vec<
             for _i in 0..cur_height {
                 col.push(Particle::Border);
             }
-            for _i in cur_height..grid_heights.len() {
+            for _i in cur_height..borders_h {
                 col.push(Particle::Empty);
             }
             side.push(col);
@@ -519,10 +606,14 @@ fn generate_borders(grid_heights: &[Vec<f32>], borders_h: usize) -> Vec<Vec<Vec<
 fn generate_vertex_grid(cube: &Vec<Vec<Vec<Particle>>>) -> Vec<Vertex> {
     let start = Utc::now();
 
-    let mut vertices: Vec<Vertex> = Vec::with_capacity(cube.len() * cube[0].len() * cube[0][0].len());
+    println!("cube sides: {}", cube.len());
+    println!("cube cols: {}", cube[0].len());
+    println!("cube elems: {}", cube[0][0].len());
+
+    let mut vertices: Vec<Vertex> = Vec::with_capacity(WATER_GRID_WIDTH * WATER_GRID_WIDTH * WATER_GIRD_HEIGHT);
     let mut cur_coord = na::Vector3::new(-1., 0., -1.);
-    let xz_step = 2. / (cube.len() - 1) as f32;
-    let y_step = 1. / (cube[0][0].len() - 1) as f32;
+    let xz_step = 2. / (WATER_GRID_WIDTH - 1) as f32;
+    let y_step = 1. / (WATER_GIRD_HEIGHT - 1) as f32;
 
     for side in cube {
         cur_coord.x = -1.;

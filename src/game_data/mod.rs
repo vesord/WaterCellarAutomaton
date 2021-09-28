@@ -6,7 +6,7 @@ use surface::Surface;
 use crate::camera::MVP;
 use controls::{Actions, Controls};
 use crate::game_data::grid::{Grid, GridingAlgo};
-use crate::game_data::water::Water;
+use crate::game_data::water::{Water, WaveDirection};
 use std::time::Duration;
 
 pub mod controls;
@@ -63,6 +63,7 @@ impl GameData {
     pub fn modulate(&mut self) -> Result<(), failure::Error> {
         // self.mvp.model_rotate_y(3.14 / 360.);
         // self.water.loop_add_water();
+        self.water.add_rain_particles();
         self.water.modulate();
         self.apply_uniforms().map_err(err_msg)
     }
@@ -117,7 +118,7 @@ impl GameData {
     fn action_flush(&mut self) {
         println!("FLUSH!");
         self.controls.reset_action(Actions::Flush);
-        self.water.modulate();
+        // self.water.dbg_print_col((2, 2));
     }
 
     fn action_add_water(&mut self) {
@@ -129,25 +130,29 @@ impl GameData {
     fn action_wave_s(&mut self) {
         println!("WAVE SOUTH");
         self.controls.reset_action(Actions::WaveS);
-        self.water.dbg_move_south();
+        self.water.add_wave_particles(WaveDirection::South);
+        // self.water.dbg_move_south();
     }
 
     fn action_wave_n(&mut self) {
         println!("WAVE NORTH");
         self.controls.reset_action(Actions::WaveN);
-        self.water.dbg_move_north();
+        self.water.add_wave_particles(WaveDirection::North);
+        // self.water.dbg_move_north();
     }
 
     fn action_wave_e(&mut self) {
         println!("WAVE EAST");
         self.controls.reset_action(Actions::WaveE);
-        self.water.dbg_move_east();
+        self.water.add_wave_particles(WaveDirection::East);
+        // self.water.dbg_move_east();
     }
 
     fn action_wave_w(&mut self) {
         println!("WAVE WEST");
         self.controls.reset_action(Actions::WaveW);
-        self.water.dbg_move_west();
+        self.water.add_wave_particles(WaveDirection::West);
+        // self.water.dbg_move_west();
     }
 
     fn action_cam_capture(&mut self) -> Result<(), failure::Error> {
