@@ -11,7 +11,6 @@ use chrono::prelude::*;
 use std::ops::{Index, IndexMut};
 use crate::game_data::GRID_WIDTH;
 use self::rand::Rng;
-use std::borrow::Borrow;
 
 #[derive(VertexAttribPointers)]
 #[derive(Copy, Clone, Debug)]
@@ -295,82 +294,38 @@ impl Water {
             }
 
             if self.grid[z][x][y - 1] == Particle::Empty {  // Bottom
-                self.grid[z][x][y] = Particle::Empty;
-                self.grid[z][x][y - 1] = Particle::Water;
-                loc.y = loc.y - 1;
-                square.move_down();
+                move_water_particle(&mut self.grid, loc, square, WaterParticleMove::Down);
             }
-            else if (z > 0) && (y > 0) && (self.grid[z - 1][x][y - 1] == Particle::Empty) {
-                self.grid[z][x][y] = Particle::Empty;
-                self.grid[z - 1][x][y - 1] = Particle::Water;
-                loc.z = loc.z - 1;
-                loc.y = loc.y - 1;
-                square.move_north();
-                square.move_down();
+            else if (z > 0) && (self.grid[z - 1][x][y - 1] == Particle::Empty) {
+                move_water_particle(&mut self.grid, loc, square, WaterParticleMove::DownNorth);
             }
-            else if (x > 0) && (y > 0) && (self.grid[z][x - 1][y - 1] == Particle::Empty) {
-                self.grid[z][x][y] = Particle::Empty;
-                self.grid[z][x - 1][y - 1] = Particle::Water;
-                loc.x = loc.x - 1;
-                loc.y = loc.y - 1;
-                square.move_west();
-                square.move_down();
+            else if (x > 0) && (self.grid[z][x - 1][y - 1] == Particle::Empty) {
+                move_water_particle(&mut self.grid, loc, square, WaterParticleMove::DownWest);
             }
-            else if (x < WATER_GRID_WIDTH - 2) && (y > 0) && (self.grid[z][x + 1][y - 1] == Particle::Empty) {
-                self.grid[z][x][y] = Particle::Empty;
-                self.grid[z][x + 1][y - 1] = Particle::Water;
-                loc.x = loc.x + 1;
-                loc.y = loc.y - 1;
-                square.move_east();
-                square.move_down();
+            else if (x < WATER_GRID_WIDTH - 2) && (self.grid[z][x + 1][y - 1] == Particle::Empty) {
+                move_water_particle(&mut self.grid, loc, square, WaterParticleMove::DownEast);
             }
-            else if (z < WATER_GRID_WIDTH - 2) && (y > 0) && (self.grid[z + 1][x][y - 1] == Particle::Empty) {
-                self.grid[z][x][y] = Particle::Empty;
-                self.grid[z + 1][x][y - 1] = Particle::Water;
-                loc.z = loc.z + 1;
-                loc.y = loc.y - 1;
-                square.move_south();
-                square.move_down();
+            else if (z < WATER_GRID_WIDTH - 2) && (self.grid[z + 1][x][y - 1] == Particle::Empty) {
+                move_water_particle(&mut self.grid, loc, square, WaterParticleMove::DownSouth);
             }
             else {
                 let rnd = rand::thread_rng().gen_range(0..4);
                 match rnd {
-                    0 => {
-                        if (z > 0) && (self.grid[z - 1][x][y] == Particle::Empty) {
-                            self.grid[z][x][y] = Particle::Empty;
-                            self.grid[z - 1][x][y] = Particle::Water;
-                            loc.z = loc.z - 1;
-                            square.move_north();
-                        }
+                    0 => if (z > 0) && (self.grid[z - 1][x][y] == Particle::Empty) {
+                        move_water_particle(&mut self.grid, loc, square, WaterParticleMove::North)
                     },
-                    1 => {
-                        if (x > 0) && (self.grid[z][x - 1][y] == Particle::Empty) {
-                            self.grid[z][x][y] = Particle::Empty;
-                            self.grid[z][x - 1][y] = Particle::Water;
-                            loc.x = loc.x - 1;
-                            square.move_west();
-                        }
+                    1 => if (x > 0) && (self.grid[z][x - 1][y] == Particle::Empty) {
+                        move_water_particle(&mut self.grid, loc, square, WaterParticleMove::West)
                     },
-                    2 => {
-                        if (x < WATER_GRID_WIDTH - 2) && (self.grid[z][x + 1][y] == Particle::Empty) {
-                            self.grid[z][x][y] = Particle::Empty;
-                            self.grid[z][x + 1][y] = Particle::Water;
-                            loc.x = loc.x + 1;
-                            square.move_east();
-                        }
+                    2 => if (x < WATER_GRID_WIDTH - 2) && (self.grid[z][x + 1][y] == Particle::Empty) {
+                        move_water_particle(&mut self.grid, loc, square, WaterParticleMove::East)
                     },
-                    3 => {
-                        if (z < WATER_GRID_WIDTH - 2) && (self.grid[z + 1][x][y] == Particle::Empty) {
-                            self.grid[z][x][y] = Particle::Empty;
-                            self.grid[z + 1][x][y] = Particle::Water;
-                            loc.z = loc.z + 1;
-                            square.move_south();
-                        }
+                    3 => if (z < WATER_GRID_WIDTH - 2) && (self.grid[z + 1][x][y] == Particle::Empty) {
+                        move_water_particle(&mut self.grid, loc, square, WaterParticleMove::South)
                     },
                     _ => ()
                 }
             }
-
             comparisons += 1;
         }
 
@@ -600,6 +555,78 @@ impl Water {
         self.update_ebo();
         self.update_vao();
 
+    }
+}
+
+enum WaterParticleMove {
+    Down,
+    North,
+    South,
+    East,
+    West,
+    DownNorth,
+    DownSouth,
+    DownEast,
+    DownWest,
+}
+
+fn move_water_particle(grid: &mut Vec<Vec<Vec<Particle>>>, loc: &mut na::Vector3<usize>, square: &mut ParticleShape, dir: WaterParticleMove) {
+    grid[loc.z][loc.x][loc.y] = Particle::Empty;
+
+    let (z, x, y) = match dir {
+        WaterParticleMove::Down => {
+            square.move_down();
+            (0, 0, -1)
+        },
+        WaterParticleMove::North => {
+            square.move_north();
+            (-1, 0, 0)
+        },
+        WaterParticleMove::South => {
+            square.move_south();
+            (1, 0, 0)
+        },
+        WaterParticleMove::West => {
+            square.move_west();
+            (0, -1, 0)
+        },
+        WaterParticleMove::East => {
+            square.move_east();
+            (0, 1, 0)
+        },
+        WaterParticleMove::DownNorth => {
+            square.move_down();
+            square.move_north();
+            (-1, 0, -1)
+        }
+        WaterParticleMove::DownSouth => {
+            square.move_down();
+            square.move_south();
+            (1, 0, -1)
+        }
+        WaterParticleMove::DownWest => {
+            square.move_down();
+            square.move_west();
+            (0, -1, -1)
+        }
+        WaterParticleMove::DownEast => {
+            square.move_down();
+            square.move_east();
+            (0, 1, -1)
+        }
+    };
+
+    loc.x = add_usize_i32(loc.x, x);
+    loc.y = add_usize_i32(loc.y, y);
+    loc.z = add_usize_i32(loc.z, z);
+    grid[loc.z][loc.x][loc.y] = Particle::Water;
+}
+
+fn add_usize_i32(u: usize, i: i32) -> usize {
+    if i.is_negative() {
+        u - i.wrapping_abs() as u32 as usize
+    } else {
+        u + i as usize
     }
 }
 
