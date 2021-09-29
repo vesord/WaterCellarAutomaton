@@ -130,8 +130,18 @@ impl ParticleShape {
 #[derive(PartialEq)]
 enum Particle {
     Empty,
-    Border,
+    Border(MoveRedirect),
     Water,
+}
+
+#[derive(Debug)]
+#[derive(Copy, Clone)]
+#[derive(PartialEq)]
+enum MoveRedirect {
+    North,
+    South,
+    East,
+    West
 }
 
 pub enum WaveDirection {
@@ -225,9 +235,9 @@ impl Water {
 
     pub fn set_grid(&mut self, grid_heights: &[Vec<f32>]) {
         let borders_h = WATER_GIRD_HEIGHT;
-        self.grid = generate_borders(grid_heights, borders_h);
         self.water_level_max = borders_h;
-        let vertices = generate_vertex_grid(&self.grid);
+        self.grid = generate_borders(grid_heights, borders_h);
+        let vertices = generate_vertices(grid_heights, borders_h);
         self.update_vbo(&vertices);
 
         // for z in 0..2 {
@@ -251,7 +261,7 @@ impl Water {
 
     pub fn increase_water_level(&mut self) {
         let new_water_level = (self.water_level + 1).clamp(0, self.water_level_max - 1); // TODO: config
-        // self.water_level = new_water_level;
+        self.water_level = new_water_level;
         self.fill_water_level(new_water_level);
     }
 
@@ -347,9 +357,9 @@ impl Water {
         let mut cur_water_idx_x = 0;
         let mut cur_water_idx_z = 0;
 
-        for side in self.grid.split_last_mut().unwrap().1 {     // unwrap assumes self.grid is not empty
+        for side in &mut self.grid {     // unwrap assumes self.grid is not empty
             cur_water_idx_x = 0;
-            for col in side.split_last_mut().unwrap().1 {
+            for col in side {
                 *col.index_mut(level) = match col.index(level) {
                     Particle::Empty => {
                         add_particle(&mut self.locations, &mut self.ib_data,
@@ -358,7 +368,7 @@ impl Water {
                         Particle::Water
                     },
                     Particle::Water => Particle::Water,
-                    Particle::Border => Particle::Border,
+                    Particle::Border(any) => Particle::Border(*any),
                 };
                 cur_water_idx_x += 1;
             }
@@ -647,18 +657,18 @@ fn generate_borders(grid_heights: &[Vec<f32>], borders_h: usize) -> Vec<Vec<Vec<
     let mut borders: Vec<Vec<Vec<Particle>>> = vec![];
     let step_h = 1. / (borders_h - 1) as f32;
 
-    println!("Grid_heights rows: {}", grid_heights.len());
-    println!("Grid_heights elems: {}", grid_heights[0].len());
-
-    for row in grid_heights {
+    for row in grid_heights.split_last().unwrap().1 {
 
         let mut side: Vec<Vec<Particle>> = Vec::with_capacity(WATER_GIRD_HEIGHT - 1);
 
-        for elem in row {
+        for elem in row.split_last().unwrap().1 {
             let mut col: Vec<Particle> = Vec::with_capacity(borders_h);
             let cur_height = (elem / step_h).ceil() as usize;
+
+
+
             for _i in 0..cur_height {
-                col.push(Particle::Border);
+                col.push(Particle::Border(MoveRedirect::North));
             }
             for _i in cur_height..borders_h {
                 col.push(Particle::Empty);
@@ -667,28 +677,27 @@ fn generate_borders(grid_heights: &[Vec<f32>], borders_h: usize) -> Vec<Vec<Vec<
         }
         borders.push(side);
     }
+
+    println!("WGrid z: {}, x: {}, y: {}", borders.len(), borders[0].len(), borders[0][0].len());
+
     borders
 }
 
-fn generate_vertex_grid(cube: &Vec<Vec<Vec<Particle>>>) -> Vec<Vertex> {
+fn generate_vertices(grid_heights: &[Vec<f32>], borders_h: usize) -> Vec<Vertex> {
     let start = Utc::now();
-
-    println!("cube sides: {}", cube.len());
-    println!("cube cols: {}", cube[0].len());
-    println!("cube elems: {}", cube[0][0].len());
 
     let mut vertices: Vec<Vertex> = Vec::with_capacity(WATER_GRID_WIDTH * WATER_GRID_WIDTH * WATER_GIRD_HEIGHT);
     let mut cur_coord = na::Vector3::new(-1., 0., -1.);
     let xz_step = 2. / (WATER_GRID_WIDTH - 1) as f32;
     let y_step = 1. / (WATER_GIRD_HEIGHT - 1) as f32;
 
-    for side in cube {
+    for side in grid_heights {
         cur_coord.x = -1.;
-        for col in side {
+        for _col in side {
             cur_coord.y = 0.;
 
             // print!("Coord: {}, {}; Col: ", cur_coord.x, cur_coord.z);
-            for _drop in col {
+            for _drop in 0..borders_h {
                 // print!("{} ", cur_coord.y);
                 vertices.push(cur_coord.into());
                 cur_coord.y += y_step;
@@ -701,6 +710,7 @@ fn generate_vertex_grid(cube: &Vec<Vec<Vec<Particle>>>) -> Vec<Vertex> {
 
     let end = Utc::now();
     println!("Gen Water Vertex Grid taken: {} ms", (end - start).num_milliseconds());
+    println!("VertexGrid len: {}", vertices.len());
     vertices
 }
 
