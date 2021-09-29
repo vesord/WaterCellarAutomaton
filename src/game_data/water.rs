@@ -252,7 +252,7 @@ impl Water {
 
     pub fn increase_water_level(&mut self) {
         let new_water_level = (self.water_level + 1).clamp(0, self.water_level_max - 1); // TODO: config
-        self.water_level = new_water_level;
+        // self.water_level = new_water_level;
         self.fill_water_level(new_water_level);
     }
 
@@ -283,11 +283,16 @@ impl Water {
 
     pub fn modulate(&mut self) {
         let start = Utc::now();
+        let mut comparisons = 0;
 
         for (loc, square) in self.locations.iter_mut().zip(&mut self.ib_data) {
             let x = loc.x;
             let y = loc.y;
             let z = loc.z;
+
+            if loc.y < self.water_level {
+                continue;
+            }
 
             if self.grid[z][x][y - 1] == Particle::Empty {  // Bottom
                 self.grid[z][x][y] = Particle::Empty;
@@ -365,14 +370,18 @@ impl Water {
                     _ => ()
                 }
             }
+
+            comparisons += 1;
         }
 
         self.update_ebo();
         self.update_vao();
 
+        self.update_water_level();
+
         let end = Utc::now();
 
-        println!("Modulation done, elems: {}, time {} ms", self.locations.len(), (end-start).num_milliseconds());
+        println!("Modulation done, elems: {}, comps: {}, time {} ms", self.locations.len(), comparisons, (end-start).num_milliseconds());
     }
 
     fn fill_water_level(&mut self, level: usize) {
@@ -407,6 +416,24 @@ impl Water {
 
         self.update_ebo();
         self.update_vao();
+    }
+
+    fn update_water_level(&mut self) {
+        let mut need_up = true;
+        let cur_water_level = self.water_level;
+
+        'outer: for side in self.grid.split_last().unwrap().1 {
+            for col in side.split_last().unwrap().1 {
+                if col[cur_water_level] == Particle::Empty {
+                    need_up = false;
+                    break 'outer;
+                }
+            }
+        }
+
+        if need_up {
+            self.water_level = std::cmp::min(cur_water_level + 1, self.water_level_max);
+        }
     }
 
     pub fn add_rain_particles(&mut self) {
@@ -598,7 +625,7 @@ fn generate_borders(grid_heights: &[Vec<f32>], borders_h: usize) -> Vec<Vec<Vec<
 
     for row in grid_heights {
 
-        let mut side: Vec<Vec<Particle>> = Vec::with_capacity(WATER_GIRD_HEIGHT);
+        let mut side: Vec<Vec<Particle>> = Vec::with_capacity(WATER_GIRD_HEIGHT - 1);
 
         for elem in row {
             let mut col: Vec<Particle> = Vec::with_capacity(borders_h);
