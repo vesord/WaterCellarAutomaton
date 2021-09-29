@@ -260,9 +260,8 @@ impl Water {
     }
 
     pub fn increase_water_level(&mut self) {
-        let new_water_level = (self.water_level + 1).clamp(0, self.water_level_max - 1); // TODO: config
-        self.water_level = new_water_level;
-        self.fill_water_level(new_water_level);
+        self.fill_water_level(self.water_level);
+        self.water_level = std::cmp::min(self.water_level_max - 1, self.water_level + 1);
     }
 
     pub fn flush(&mut self) {
