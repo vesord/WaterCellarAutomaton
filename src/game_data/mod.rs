@@ -6,7 +6,7 @@ use surface::Surface;
 use crate::camera::MVP;
 use controls::{Actions, Controls};
 use crate::game_data::grid::{Grid, GridingAlgo};
-use crate::game_data::water::{Water, WaveDirection};
+use crate::game_data::water::{Water, Direction};
 use std::time::Duration;
 
 pub mod controls;
@@ -130,28 +130,28 @@ impl GameData {
     fn action_wave_s(&mut self) {
         println!("WAVE SOUTH");
         self.controls.reset_action(Actions::WaveS);
-        self.water.add_wave_particles(WaveDirection::South);
+        self.water.add_wave_particles(Direction::South);
         // self.water.dbg_move_south();
     }
 
     fn action_wave_n(&mut self) {
         println!("WAVE NORTH");
         self.controls.reset_action(Actions::WaveN);
-        self.water.add_wave_particles(WaveDirection::North);
+        self.water.add_wave_particles(Direction::North);
         // self.water.dbg_move_north();
     }
 
     fn action_wave_e(&mut self) {
         println!("WAVE EAST");
         self.controls.reset_action(Actions::WaveE);
-        self.water.add_wave_particles(WaveDirection::East);
+        self.water.add_wave_particles(Direction::East);
         // self.water.dbg_move_east();
     }
 
     fn action_wave_w(&mut self) {
         println!("WAVE WEST");
         self.controls.reset_action(Actions::WaveW);
-        self.water.add_wave_particles(WaveDirection::West);
+        self.water.add_wave_particles(Direction::West);
         // self.water.dbg_move_west();
     }
 
