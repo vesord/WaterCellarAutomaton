@@ -7,7 +7,7 @@ build = "build.rs"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-sdl2 = { version = "0.34.5", features = ["bundled", "static-link"] }
+sdl2 = { version = "0.34.5"}
 failure = "0.1"
 nalgebra = "0.29"
 gl_builder = { path = "gl_builder" }

@@ -5,7 +5,7 @@ use failure::err_msg;
 pub fn set_gl_attr(video: &VideoSubsystem) {
     let gl_attr = video.gl_attr();
     gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
-    gl_attr.set_context_version(4, 6);
+    gl_attr.set_context_version(4, 1);
 }
 
 pub fn create_window(video: &VideoSubsystem) -> Result<Window, failure::Error> {
