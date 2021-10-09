@@ -275,10 +275,18 @@ impl Water {
     pub fn flush(&mut self) {
         self.water_level = 0;
         self.ib_data.clear();
-        for loc in &self.locations {
-            self.grid[loc.z][loc.x][loc.y] = Particle::Empty; // TODO: think how to optimize
-        }
         self.locations.clear();
+        for side in &mut self.grid {
+            for col in side {
+                for particle in col {
+                    *particle = match particle {
+                        Particle::Border(any_dir) => Particle::Border(*any_dir),
+                        Particle::Water(any_dir, any_en) => Particle::Empty,
+                        Particle::Empty => Particle::Empty,
+                    }
+                }
+            }
+        }
         self.water_level = 0;
 
         self.update_ebo();
@@ -340,6 +348,21 @@ impl Water {
 
         if need_up {
             self.water_level = std::cmp::min(cur_water_level + 1, self.water_level_max);
+            if self.water_level > 3 {
+                let v = self.locations.iter().zip(&self.ib_data)
+                    .fold((vec![], vec![]), |mut acc, (location, index)| {
+                        if !((location.z > 0 && location.z < GRID_WIDTH - 2)
+                            && (location.x > 0 && location.x < GRID_WIDTH - 2)
+                            && (location.y < self.water_level - 1))
+                        {
+                            acc.0.push(*location);
+                            acc.1.push(*index);
+                        }
+                        acc
+                    });
+                self.locations = v.0;
+                self.ib_data = v.1;
+            }
         }
     }
 

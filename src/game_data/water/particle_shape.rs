@@ -2,6 +2,7 @@ use crate::game_data::water::{WATER_GIRD_HEIGHT, WATER_GRID_WIDTH};
 
 pub const POINTS_PER_PARTICLE: usize = 6;
 
+#[derive(Copy, Clone)]
 #[repr(C, packed)]
 pub struct ParticleShape {
     t0: TriangleIdx,
@@ -47,6 +48,7 @@ impl ParticleShape {
     }
 }
 
+#[derive(Copy, Clone)]
 #[repr(C, packed)]
 struct TriangleIdx {
     i0: u32,
