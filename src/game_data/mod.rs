@@ -7,7 +7,6 @@ use crate::camera::MVP;
 use controls::{Actions, Controls};
 use grid::{Grid, GridingAlgo};
 use water::{Water, Direction};
-use std::time::Duration;
 
 pub mod controls;
 mod surface;
@@ -35,12 +34,8 @@ impl GameData {
         viewport.use_it(&gl);
 
         let grid = Grid::new(&res, grid_path, GRID_WIDTH, GridingAlgo::RadialBasisFunction)?;
-
-        let mut surface = Surface::new(&res, &gl)?;
-        surface.set_grid(grid.get_data())?;                     // TODO: move to ::new()
-
-        let mut water = Water::new(&res, &gl)?;
-        water.set_grid(grid.get_data());    // TODO: move to ::new()
+        let surface = Surface::new(&res, &gl, grid.get_data())?;
+        let water = Water::new(&res, &gl, grid.get_data())?;
 
         let mvp = MVP::new();
         surface.apply_uniform(&gl, &mvp, "mvp_transform").map_err(err_msg)?;
@@ -75,8 +70,6 @@ impl GameData {
         if self.controls.wave_w.into() { self.action_wave_w() };
         if self.controls.wave_e.into() { self.action_wave_e() };
         if self.controls.cam_capture.into() { self.action_cam_capture().map_err(err_msg)? };
-        if self.controls.zoom != 0 { self.action_zoom().map_err(err_msg)? };
-
         Ok(())
     }
 
@@ -109,10 +102,6 @@ impl GameData {
             self.gl.ClearDepth(1.);
         }
     }
-    // TODO: remove if not need
-    // pub fn set_grid(&mut self) -> Result<(), failure::Error> {
-    //     self.surface.set_grid(self.grid.get_data())
-    // }
 
     fn action_flush(&mut self) {
         println!("FLUSH!");
@@ -130,28 +119,24 @@ impl GameData {
         println!("WAVE SOUTH");
         self.controls.reset_action(Actions::WaveS);
         self.water.add_wave_particles(Direction::South);
-        // self.water.dbg_move_south();
     }
 
     fn action_wave_n(&mut self) {
         println!("WAVE NORTH");
         self.controls.reset_action(Actions::WaveN);
         self.water.add_wave_particles(Direction::North);
-        // self.water.dbg_move_north();
     }
 
     fn action_wave_e(&mut self) {
         println!("WAVE EAST");
         self.controls.reset_action(Actions::WaveE);
         self.water.add_wave_particles(Direction::East);
-        // self.water.dbg_move_east();
     }
 
     fn action_wave_w(&mut self) {
         println!("WAVE WEST");
         self.controls.reset_action(Actions::WaveW);
         self.water.add_wave_particles(Direction::West);
-        // self.water.dbg_move_west();
     }
 
     fn action_cam_capture(&mut self) -> Result<(), failure::Error> {
@@ -166,14 +151,6 @@ impl GameData {
             (naviball.y) as f32 / (self.viewport.h) as f32 );
 
         self.mvp.view_rotate_naviball(naviball);
-        self.apply_uniforms().map_err(err_msg)?;
-        Ok(())
-    }
-
-    fn action_zoom(&mut self) -> Result<(), failure::Error> {
-        let zoom: f32 = self.controls.zoom as f32 / 3.;
-        self.controls.reset_action(Actions::Zoom);
-        self.mvp.view_translate_zoom(zoom);
         self.apply_uniforms().map_err(err_msg)?;
         Ok(())
     }

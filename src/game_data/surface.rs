@@ -4,7 +4,6 @@ use std::ffi::{CString};
 use crate::camera::MVP;
 use failure::err_msg;
 use gl_render::uniform;
-use std::fmt::{Display, Formatter};
 
 
 #[derive(VertexAttribPointers)]
@@ -21,12 +20,6 @@ impl From<(f32, f32, f32)> for Vertex {
     }
 }
 
-impl Display for Vertex {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({}, {}, {}), ", self.pos.d0, self.pos.d1, self.pos.d2)
-    }
-}
-
 pub struct Surface {
     program: gl_render::Program,
     vbo: buffer::ArrayBuffer,
@@ -35,23 +28,11 @@ pub struct Surface {
 }
 
 impl Surface {
-    pub fn new(res: &Resources, gl: &gl::Gl) -> Result<Surface, failure::Error> {
+    pub fn new(res: &Resources, gl: &gl::Gl, grid: &[Vec<f32>]) -> Result<Surface, failure::Error> {
         let program = gl_render::Program::from_res(gl, res, "shaders/surface")?;
 
-        let vertices: Vec<Vertex> = vec![
-            (-0.7, 0.0,  0.7).into(), // bot left
-            ( 0.7, 0.0,  0.7).into(), // bot right
-            ( 0.7, 0.0, -0.7).into(), // top right
-            (-0.7, 0.0, -0.7).into(), // top left
-            ( 0.0, 0.5,  0.0).into(), // cone top
-        ];
-
-        let indices: Vec<u32> = vec![
-            0, 1, 4,
-            1, 2, 4,
-            2, 3, 4,
-            3, 0, 4,
-        ];
+        let vertices: Vec<Vertex> = generate_vertex_grid(grid)?;
+        let indices: Vec<u32> = generate_indices(grid.len())?;
 
         let vbo = buffer::ArrayBuffer::new(&gl);
         vbo.bind();
@@ -96,7 +77,7 @@ impl Surface {
         self.vao.unbind();
     }
 
-    fn update_buffers(&mut self, vertices: &[Vertex], indices: &[u32]) {
+    fn _update_buffers(&mut self, vertices: &[Vertex], indices: &[u32]) {
         self.vbo.bind();
         self.vbo.static_draw_data(vertices);
         self.vbo.unbind();
@@ -107,10 +88,10 @@ impl Surface {
         self.ebo.unbind();
     }
 
-    pub fn set_grid(&mut self, grid: &[Vec<f32>]) -> Result<(), failure::Error> {
+    pub fn _set_grid(&mut self, grid: &[Vec<f32>]) -> Result<(), failure::Error> {
         let vertices: Vec<Vertex> = generate_vertex_grid(grid)?;
         let indices: Vec<u32> = generate_indices(grid.len())?;
-        self.update_buffers(&vertices, &indices);
+        self._update_buffers(&vertices, &indices);
         Ok(())
     }
 }

@@ -5,7 +5,7 @@ mod vertex;
 mod particle_shape;
 
 use vertex::Vertex;
-use gl_render::{data, buffer, uniform};
+use gl_render::{buffer, uniform};
 use resources::Resources;
 use crate::camera::MVP;
 use std::ffi::CString;
@@ -15,7 +15,6 @@ use chrono::prelude::*;
 use std::ops::{Index, IndexMut};
 use crate::game_data::GRID_WIDTH;
 use self::rand::Rng;
-use std::borrow::Borrow;
 use particle_shape::{ParticleShape, POINTS_PER_PARTICLE};
 
 
@@ -55,31 +54,20 @@ const WATER_RAIN_ITERATIONS: usize =
     ((WATER_GRID_WIDTH * WATER_GIRD_HEIGHT) as f32 * 0.0001) as usize + 1;
 
 impl Water {
-    pub fn new(res: &Resources, gl: &gl::Gl) -> Result<Water, failure::Error> {
+    pub fn new(res: &Resources, gl: &gl::Gl, grid_heights: &[Vec<f32>]) -> Result<Water, failure::Error> {
         let program = gl_render::Program::from_res(gl, res, "shaders/water")?;
 
-        let vertices: Vec<Vertex> = vec![
-            (-1.0, 0.1,  1.0).into(), // bot left
-            ( 1.0, 0.1,  1.0).into(), // bot right
-            ( 1.0, 0.1, -1.0).into(), // top right
-            (-1.0, 0.1, -1.0).into(), // top left
-        ];
-
-        let indices: Vec<u32> = vec![
-            0, 1, 2,
-            2, 3, 0,
-        ];
+        let borders_h = WATER_GIRD_HEIGHT;
+        let grid = generate_borders(grid_heights, borders_h);
+        let water_level_max = borders_h;
+        let vertices = generate_vertex_grid(grid_heights, borders_h);
 
         let vbo = buffer::ArrayBuffer::new(&gl);
         vbo.bind();
         vbo.static_draw_data(&vertices);
         vbo.unbind();
 
-        let mut ebo = buffer::ElementArrayBuffer::new(&gl);
-        ebo.bind();
-        ebo.static_draw_data(&indices);
-        ebo.set_elem_count(indices.len());
-        ebo.unbind();
+        let ebo = buffer::ElementArrayBuffer::new(&gl);
 
         let vao = buffer::VertexArray::new(&gl);
         vao.bind();
@@ -90,9 +78,7 @@ impl Water {
         vao.unbind();
         ebo.unbind();
 
-        let grid = vec![];
         let water_level = 0;
-        let water_level_max = 0;
         let locations = vec![];
         let ib_data = vec![];
 
@@ -118,12 +104,12 @@ impl Water {
         self.vao.unbind();
     }
 
-    pub fn set_grid(&mut self, grid_heights: &[Vec<f32>]) {
+    pub fn _set_grid(&mut self, grid_heights: &[Vec<f32>]) {
         let borders_h = WATER_GIRD_HEIGHT;
         self.grid = generate_borders(grid_heights, borders_h);
         self.water_level_max = borders_h;
         let vertices = generate_vertex_grid(grid_heights, borders_h);
-        self.update_vbo(&vertices);
+        self._update_vbo(&vertices);
 
         self.update_ebo();
         self.update_vao();
@@ -267,7 +253,7 @@ impl Water {
         self.update_vao();
     }
 
-    pub fn loop_add_water(&mut self) {
+    pub fn _loop_add_water(&mut self) {
         match self.water_level {
             level if level + 1 >= self.water_level_max / 2 => self.flush(),
             _ => self.increase_water_level(),
@@ -283,7 +269,7 @@ impl Water {
     fn fill_water_level(&mut self, level: usize) {
         let xz_size = WATER_GRID_WIDTH as u32; // TODO: add xyz_size to config
         let y_size = WATER_GIRD_HEIGHT as u32; // TODO: add xyz_size to config
-        let mut cur_water_idx_x = 0;
+        let mut cur_water_idx_x;
         let mut cur_water_idx_z = 0;
 
         for side in &mut self.grid {
@@ -384,7 +370,7 @@ impl Water {
                      WATER_GRID_WIDTH as u32, WATER_GIRD_HEIGHT as u32);
     }
 
-    fn update_vbo(&self, vertices: &[Vertex]) {
+    fn _update_vbo(&self, vertices: &[Vertex]) {
         self.vbo.bind();
         self.vbo.static_draw_data(vertices);
         self.vbo.unbind();
@@ -404,12 +390,6 @@ impl Water {
         self.vbo.unbind();
         self.vao.unbind();
         self.ebo.unbind();
-    }
-
-    pub fn dbg_print_col(&self, coord: (usize, usize)) {
-        for elem in &self.grid[coord.0][coord.1] {
-            print!("{:?} ", elem);
-        }
     }
 }
 
@@ -488,7 +468,7 @@ fn generate_vertex_grid(grid_heights: &[Vec<f32>], borders_h: usize) -> Vec<Vert
 
     for row in grid_heights {
         cur_coord.x = -1.;
-        for elem in row {
+        for _elem in row {
             cur_coord.y = 0.;
             for _i in 0..borders_h {
                 vertices.push(cur_coord.into());

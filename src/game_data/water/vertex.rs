@@ -1,4 +1,4 @@
-use gl_render::{data, buffer, uniform};
+use gl_render::{data};
 
 #[derive(VertexAttribPointers)]
 #[derive(Copy, Clone, Debug)]

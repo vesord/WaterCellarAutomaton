@@ -12,7 +12,6 @@ use sdl2::event::{Event, WindowEvent};
 use game_data::{controls::KeyStatus, GameData};
 use crate::initialization::{create_window, set_gl_attr};
 use std::env;
-use std::time::{SystemTime, Duration};
 
 mod debug;
 mod initialization;
@@ -59,7 +58,6 @@ fn run(grid_path: &str) -> Result<(), failure::Error> {
                 Event::MouseButtonUp {mouse_btn, x, y, ..} => gd.controls.action_mouse(mouse_btn, x, y, KeyStatus::Released),
                 Event::MouseButtonDown {mouse_btn, x, y, ..} => gd.controls.action_mouse(mouse_btn, x, y,KeyStatus::Pressed),
                 Event::MouseMotion {x, y, ..} => gd.controls.action_mouse_move(x, y),
-                Event::MouseWheel {y, ..} => gd.controls.action_mouse_wheel(y),
                 _ => {},
             }
         }

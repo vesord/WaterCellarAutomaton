@@ -24,7 +24,6 @@ pub enum Actions {
     WaveN,
     WaveE,
     WaveW,
-    Zoom,
 }
 
 #[derive(Copy, Clone)]
@@ -36,7 +35,6 @@ pub struct Controls {
     pub wave_e:         KeyStatus,
     pub wave_w:         KeyStatus,
     pub cam_capture:    KeyStatus,
-    pub zoom:           i32,
     mouse_left_clk: na::Vector2<i32>,
     mouse_cur_pos: na::Vector2<i32>,
 }
@@ -53,7 +51,6 @@ impl Controls {
             wave_e:         KeyStatus::Released,
             wave_w:         KeyStatus::Released,
             cam_capture:    KeyStatus::Released,
-            zoom:           0,
             mouse_left_clk,
             mouse_cur_pos,
         }
@@ -94,10 +91,6 @@ impl Controls {
         self.mouse_cur_pos.y = y;
     }
 
-    pub fn action_mouse_wheel(&mut self, value: i32) {
-        self.zoom += value
-    }
-
     pub fn reset_action(&mut self, action: Actions) {
         match action {
             Actions::Flush    => self.flush      = KeyStatus::Released,
@@ -106,7 +99,6 @@ impl Controls {
             Actions::WaveS    => self.wave_s     = KeyStatus::Released,
             Actions::WaveE    => self.wave_e     = KeyStatus::Released,
             Actions::WaveW    => self.wave_w     = KeyStatus::Released,
-            Actions::Zoom => self.zoom = 0,
         }
     }
 

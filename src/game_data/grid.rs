@@ -3,13 +3,12 @@ use failure::err_msg;
 use std::ffi::CString;
 
 pub struct Grid {
-    poles: Vec<na::Vector3<f32>>,
     data: Vec<Vec<f32>>,
 }
 
 pub enum GridingAlgo {
     RadialBasisFunction,
-    Kriging,
+    _Kriging,
 }
 
 #[derive(Fail, Debug)]
@@ -34,7 +33,6 @@ impl Grid {
         let input_array = Grid::add_zeros_to_edges(&input_array, 30);    // TODO: config
         let grid = Grid::make_grid(size, &input_array, griding_algo);   // TODO: pass griging_algo
         Ok(Grid {
-            poles: input_array,
             data: grid,
         })
     }
@@ -97,7 +95,7 @@ impl Grid {
 
     fn match_griding_function(griding_algo: GridingAlgo) -> fn(&na::Vector3<f32>, &Vec<na::Vector3<f32>>) -> f32 {
         match griding_algo {
-            GridingAlgo::Kriging => Grid::kriging_calculate_point,
+            GridingAlgo::_Kriging => Grid::kriging_calculate_point,
             GridingAlgo::RadialBasisFunction => Grid::rbf_calculate_point,
         }
     }
