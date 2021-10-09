@@ -28,6 +28,7 @@ pub enum Actions {
 
 #[derive(Copy, Clone)]
 pub struct Controls {
+    pub exit:           KeyStatus,
     pub flush:          KeyStatus,
     pub add_water:      KeyStatus,
     pub wave_s:         KeyStatus,
@@ -44,6 +45,7 @@ impl Controls {
         let mouse_left_clk = na::Vector2::new(0, 0);
         let mouse_cur_pos = na::Vector2::new(0, 0);
         Controls {
+            exit:           KeyStatus::Released,
             flush:          KeyStatus::Released,
             add_water:      KeyStatus::Released,
             wave_s:         KeyStatus::Released,
@@ -63,6 +65,7 @@ impl Controls {
         };
 
         match key {
+            Keycode::Escape =>  self.exit       = status,
             Keycode::F =>       self.flush      = status,
             Keycode::W =>       self.add_water  = status,
             Keycode::Num8 =>    self.wave_n     = status,

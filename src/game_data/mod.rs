@@ -21,6 +21,7 @@ pub struct GameData {
     mvp: MVP,
     color_buffer: ColorBuffer,
     pub controls: Controls,
+    need_exit: bool,
 }
 
 pub const GRID_WIDTH: usize = 200;
@@ -42,8 +43,9 @@ impl GameData {
         water.apply_uniform(&gl, &mvp, "mvp_transform").map_err(err_msg)?;
 
         let controls = Controls::new();
+        let need_exit = false;
 
-        Ok(GameData { gl: gl.clone(), viewport, surface, mvp, color_buffer, controls, water })
+        Ok(GameData { gl: gl.clone(), viewport, surface, mvp, color_buffer, controls, water, need_exit })
     }
 
     pub fn resized(&mut self, w: i32, h: i32) -> Result<(), failure::Error> {
@@ -63,6 +65,7 @@ impl GameData {
     }
 
     pub fn process_input(&mut self) -> Result<(), failure::Error> {
+        if self.controls.exit.into() { self.action_exit() };
         if self.controls.flush.into() { self.action_flush() };
         if self.controls.add_water.into() { self.action_add_water() };        // TODO: rename inc_water / dec_water
         if self.controls.wave_n.into() { self.action_wave_n() };
@@ -82,6 +85,10 @@ impl GameData {
         unsafe {
             self.gl.Clear(gl::DEPTH_BUFFER_BIT);
         }
+    }
+
+    pub fn need_exit(&self) -> bool {
+        self.need_exit
     }
 
     fn apply_uniforms(&self) -> Result<(), failure::Error> {
@@ -153,5 +160,9 @@ impl GameData {
         self.mvp.view_rotate_naviball(naviball);
         self.apply_uniforms().map_err(err_msg)?;
         Ok(())
+    }
+
+    fn action_exit(&mut self) {
+        self.need_exit = true;
     }
 }

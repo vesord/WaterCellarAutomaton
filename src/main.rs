@@ -61,6 +61,9 @@ fn run(grid_path: &str) -> Result<(), failure::Error> {
                 _ => {},
             }
         }
+        if gd.need_exit() {
+            break
+        }
         gd.process_input()?;
         gd.render();
         window.gl_swap_window();
