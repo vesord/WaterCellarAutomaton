@@ -36,6 +36,19 @@ pub enum Direction {
     West,
 }
 
+impl std::ops::Not for Direction {
+    type Output = Direction;
+
+    fn not(self) -> Self::Output {
+        match self {
+            Direction::East => Direction::West,
+            Direction::West => Direction::East,
+            Direction::South => Direction::North,
+            Direction::North => Direction::South,
+        }
+    }
+}
+
 pub struct Water {
     water_level_max: usize,
     water_level: usize,
@@ -131,8 +144,8 @@ impl Water {
 
             // let rnd_bool: bool = rand::random();
 
-            if (loc.y < self.water_level) || (cur_energy < 0) {
-                continue;
+            if (loc.y < self.water_level) || (cur_energy <= 0) {
+                continue ;
             }
 
             // Check if down is empty
@@ -148,11 +161,17 @@ impl Water {
                     cur_dir = dir;
                     self.grid[z][x][y] = Particle::Water(dir, cur_energy);
                 }
-                _ => ()
+                _ => (),
+                // Particle::Water(dir, energy) => {
+                //     self.grid[z][x][y - 1] = Particle::Water(dir, energy + 1);
+                // }
             }
 
             if cur_dir == Direction::North {
-                if (z > 0) && (self.grid[z - 1][x][y] == Particle::Empty) {
+                if z == 0 {
+                    self.grid[z][x][y] = Particle::Water(!cur_dir, cur_energy);
+                }
+                else if (z > 0) && (self.grid[z - 1][x][y] == Particle::Empty) {
                     self.grid[z][x][y] = Particle::Empty;
                     self.grid[z - 1][x][y] = Particle::Water(cur_dir, cur_energy - 1);
                     loc.z = loc.z - 1;
@@ -172,6 +191,9 @@ impl Water {
                 }
             }
             else if cur_dir == Direction::South {
+                if z >= WATER_GRID_WIDTH - 2 {
+                    self.grid[z][x][y] = Particle::Water(!cur_dir, cur_energy);
+                }
                 if (z < WATER_GRID_WIDTH - 2) && (self.grid[z + 1][x][y] == Particle::Empty) {
                     self.grid[z][x][y] = Particle::Empty;
                     self.grid[z + 1][x][y] = Particle::Water(cur_dir, cur_energy - 1);
@@ -192,6 +214,9 @@ impl Water {
                 }
             }
             else if cur_dir == Direction::East {
+                if x >= WATER_GRID_WIDTH - 2 {
+                    self.grid[z][x][y] = Particle::Water(!cur_dir, cur_energy);
+                }
                 if (x < WATER_GRID_WIDTH - 2) && (self.grid[z][x + 1][y] == Particle::Empty) {
                     self.grid[z][x][y] = Particle::Empty;
                     self.grid[z][x + 1][y] = Particle::Water(cur_dir, cur_energy - 1);
@@ -212,6 +237,9 @@ impl Water {
                 }
             }
             else if cur_dir == Direction::West {
+                if x <= 0 {
+                    self.grid[z][x][y] = Particle::Water(!cur_dir, cur_energy);
+                }
                 if (x > 0) && (self.grid[z][x - 1][y] == Particle::Empty) {
                     self.grid[z][x][y] = Particle::Empty;
                     self.grid[z][x - 1][y] = Particle::Water(cur_dir, cur_energy - 1);
@@ -346,18 +374,11 @@ impl Water {
             Direction::West => ((0..WATER_GRID_WIDTH - 1), (0..1)),
         };
 
-        let dir = match dir {
-            Direction::North => Direction::South,
-            Direction::South => Direction::North,
-            Direction::West => Direction::East,
-            Direction::East => Direction::West,
-        };
-
         for z in z_range.clone() {
             for x in x_range.clone() {
                 for y in y_range.clone() {
                     if self.grid[z][x][y] == Particle::Empty {
-                        self.grid[z][x][y] = Particle::Water(dir, GRID_WIDTH as i32);
+                        self.grid[z][x][y] = Particle::Water(!dir, (GRID_WIDTH * GRID_WIDTH / 5) as i32);
                         self.add_particle(x, y, z);
                     }
                 }
