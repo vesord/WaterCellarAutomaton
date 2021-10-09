@@ -200,6 +200,7 @@ impl GameData {
 
     fn action_set_kriging(&mut self) -> Result<(), failure::Error> {
         println!("Griding algorithm: Kriging");
+        self.controls.reset_action(Actions::Kriging);
         self.action_flush();
         self.grid.update_grid(GRID_WIDTH, GridingAlgo::Kriging);
         self.water.set_grid(&self.grid.get_data());
@@ -209,6 +210,7 @@ impl GameData {
 
     fn action_set_radial_basis(&mut self) -> Result<(), failure::Error> {
         println!("Griding algorithm: Radial basis function");
+        self.controls.reset_action(Actions::RadialBasis);
         self.action_flush();
         self.grid.update_grid(GRID_WIDTH, GridingAlgo::RadialBasisFunction);
         self.water.set_grid(&self.grid.get_data());
