@@ -130,9 +130,6 @@ impl Water {
     }
 
     pub fn modulate(&mut self) {
-        let start = Utc::now();
-        let mut comparisons = 0;
-
         for (loc, square) in self.locations.iter_mut().zip(&mut self.ib_data) {
             let x = loc.x;
             let y = loc.y;
@@ -259,17 +256,11 @@ impl Water {
                     square.move_south();
                 }
             }
-            comparisons += 1;
         }
 
+        self.update_water_level();
         self.update_ebo();
         self.update_vao();
-
-        self.update_water_level();
-
-        let end = Utc::now();
-
-        println!("Modulation done, elems: {}, comps: {}, time {} ms", self.locations.len(), comparisons, (end-start).num_milliseconds());
     }
 
     pub fn flush(&mut self) {
@@ -281,7 +272,7 @@ impl Water {
                 for particle in col {
                     *particle = match particle {
                         Particle::Border(any_dir) => Particle::Border(*any_dir),
-                        Particle::Water(any_dir, any_en) => Particle::Empty,
+                        Particle::Water(_, _) => Particle::Empty,
                         Particle::Empty => Particle::Empty,
                     }
                 }

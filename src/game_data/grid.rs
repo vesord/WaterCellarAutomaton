@@ -54,7 +54,6 @@ impl Grid {
         let grid_points_str = grid_lines2points_str(&grid_lines)?;
         let grid_points_f32 = grid_points_str2points_f32(&grid_points_str)?;
         let grid: Vec<na::Vector3<f32>> = grid_points_f32to_grid(&grid_points_f32)?;
-        println!("grid: {:?}", grid);
         Ok(grid)
     }
 
@@ -87,12 +86,6 @@ impl Grid {
             for elem in row {
                 cur_point.x += step;
                 *elem = griding_function(&cur_point, poles);
-                if cur_point.x < -0.5 + 0.0001 && cur_point.x > -0.5 - 0.0001 && cur_point.z < -0.5 + 0.0001 && cur_point.z > -0.5 - 0.0001 {
-                    println!("Elem: {}, p: ({}, {})", *elem, cur_point.x, cur_point.z);
-                }
-                if cur_point.x < -1. + 0.0001 && cur_point.x > -1. - 0.0001 && cur_point.z < -1. + 0.0001 && cur_point.z > -1. - 0.0001 {
-                    println!("Elem: {}, p: ({}, {})", *elem, cur_point.x, cur_point.z);
-                }
             }
             cur_point.x = -1. - step;
         }
