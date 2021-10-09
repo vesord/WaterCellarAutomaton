@@ -27,6 +27,7 @@ pub enum Actions {
     WaveN,
     WaveE,
     WaveW,
+    Rain,
 }
 
 #[derive(Copy, Clone)]
@@ -38,6 +39,8 @@ pub struct Controls {
     pub wave_n:         KeyStatus,
     pub wave_e:         KeyStatus,
     pub wave_w:         KeyStatus,
+    pub rain:           KeyStatus,
+    pub is_rain:        bool,
     pub cam_capture:    KeyStatus,
     mouse_left_clk: na::Vector2<i32>,
     mouse_cur_pos: na::Vector2<i32>,
@@ -47,6 +50,7 @@ impl Controls {
     pub fn new() -> Controls {
         let mouse_left_clk = na::Vector2::new(0, 0);
         let mouse_cur_pos = na::Vector2::new(0, 0);
+        let is_rain = false;
         Controls {
             exit:           KeyStatus::Released,
             flush:          KeyStatus::Released,
@@ -55,6 +59,8 @@ impl Controls {
             wave_n:         KeyStatus::Released,
             wave_e:         KeyStatus::Released,
             wave_w:         KeyStatus::Released,
+            rain:           KeyStatus::Released,
+            is_rain,
             cam_capture:    KeyStatus::Released,
             mouse_left_clk,
             mouse_cur_pos,
@@ -75,6 +81,7 @@ impl Controls {
             Keycode::Num2 =>    self.wave_s     = status,
             Keycode::Num4 =>    self.wave_w     = status,
             Keycode::Num6 =>    self.wave_e     = status,
+            Keycode::R =>       self.rain       = status,
             _ => (),
         }
     }
@@ -105,6 +112,7 @@ impl Controls {
             Actions::WaveS    => self.wave_s     = KeyStatus::Released,
             Actions::WaveE    => self.wave_e     = KeyStatus::Released,
             Actions::WaveW    => self.wave_w     = KeyStatus::Released,
+            Actions::Rain     => self.rain       = KeyStatus::Released,
         }
     }
 
@@ -127,44 +135,55 @@ impl GameData {
         if self.controls.wave_s.into() { self.action_wave_s() };
         if self.controls.wave_w.into() { self.action_wave_w() };
         if self.controls.wave_e.into() { self.action_wave_e() };
+        if self.controls.rain.into() { self.action_rain() };
         if self.controls.cam_capture.into() { self.action_cam_capture().map_err(err_msg)? };
         Ok(())
     }
 
     fn action_flush(&mut self) {
-        println!("FLUSH!");
+        println!("Flush!");
         self.controls.reset_action(Actions::Flush);
         self.water.flush();
     }
 
     fn action_add_water(&mut self) {
-        println!("ADD WATER");
+        println!("Add water");
         self.controls.reset_action(Actions::AddWater);
         self.water.increase_water_level();
     }
 
     fn action_wave_s(&mut self) {
-        println!("WAVE SOUTH");
+        println!("Wave south");
         self.controls.reset_action(Actions::WaveS);
         self.water.add_wave_particles(Direction::South);
     }
 
     fn action_wave_n(&mut self) {
-        println!("WAVE NORTH");
+        println!("Wave north");
         self.controls.reset_action(Actions::WaveN);
         self.water.add_wave_particles(Direction::North);
     }
 
     fn action_wave_e(&mut self) {
-        println!("WAVE EAST");
+        println!("Wave east");
         self.controls.reset_action(Actions::WaveE);
         self.water.add_wave_particles(Direction::East);
     }
 
     fn action_wave_w(&mut self) {
-        println!("WAVE WEST");
+        println!("Wave west");
         self.controls.reset_action(Actions::WaveW);
         self.water.add_wave_particles(Direction::West);
+    }
+
+    fn action_rain(&mut self) {
+        println!("Rain");
+        self.controls.reset_action(Actions::Rain);
+        self.controls.is_rain = !self.controls.is_rain;
+        match self.controls.is_rain {
+            true => println!("Rain start"),
+            false => println!("Rain stop"),
+        }
     }
 
     fn action_cam_capture(&mut self) -> Result<(), failure::Error> {

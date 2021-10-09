@@ -57,9 +57,9 @@ impl GameData {
     }
 
     pub fn modulate(&mut self) -> Result<(), failure::Error> {
-        // self.mvp.model_rotate_y(3.14 / 360.);
-        // self.water.loop_add_water();
-        self.water.add_rain_particles();
+        if self.controls.is_rain {
+            self.water.add_rain_particles();
+        }
         self.water.modulate();
         self.apply_uniforms().map_err(err_msg)
     }
@@ -87,9 +87,6 @@ impl GameData {
 
     pub fn init(&self) {
         unsafe {
-            // gl.Disable(gl::CULL_FACE);
-            // gl.FrontFace(gl::CCW);
-
             // TODO: depth buffer
             self.gl.Enable(gl::DEPTH_TEST);
             self.gl.DepthFunc(gl::LEQUAL);
