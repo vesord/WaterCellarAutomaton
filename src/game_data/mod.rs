@@ -25,7 +25,7 @@ pub struct GameData {
     need_exit: bool,
 }
 
-pub const GRID_WIDTH: usize = 200;
+pub const GRID_WIDTH: usize = 300;
 
 impl GameData {
     pub fn new(gl: &gl::Gl, res: &Resources, grid_path: &str) -> Result<GameData, failure::Error> {
