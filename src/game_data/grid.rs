@@ -29,10 +29,10 @@ pub enum Error {
 }
 
 impl Grid {
-    pub fn new(res: &Resources, grid_path: &str, size: usize, _griding_algo: GridingAlgo) -> Result<Grid, failure::Error> {
+    pub fn new(res: &Resources, grid_path: &str, size: usize, griding_algo: GridingAlgo) -> Result<Grid, failure::Error> {
         let input_array = Grid::get_user_grid(res, grid_path)?;
         let input_array = Grid::add_zeros_to_edges(&input_array, 30);    // TODO: config
-        let grid = Grid::make_grid(size, &input_array, GridingAlgo::RadialBasisFunction);   // TODO: pass griging_algo
+        let grid = Grid::make_grid(size, &input_array, griding_algo);   // TODO: pass griging_algo
         Ok(Grid {
             poles: input_array,
             data: grid,
@@ -46,13 +46,9 @@ impl Grid {
     fn get_user_grid(res: &Resources, grid_path: &str) -> Result<Vec<na::Vector3<f32>>, failure::Error> {
         let grid_file = res.load_cstring(grid_path).map_err(err_msg)?;
         let grid_str = grid_str2file(grid_file, grid_path)?;
-        // println!("grid str: {:?}", grid_str);
         let grid_lines: Vec<&str> = grid_str.split("\n").collect();
-        // println!("grid lines: {:?}", grid_lines);
         let grid_points_str = grid_lines2points_str(&grid_lines)?;
-        // println!("grid points str: {:?}", grid_points_str);
         let grid_points_f32 = grid_points_str2points_f32(&grid_points_str)?;
-        // println!("grid points f32: {:?}", grid_points_f32);
         let grid: Vec<na::Vector3<f32>> = grid_points_f32to_grid(&grid_points_f32)?;
         println!("grid: {:?}", grid);
         Ok(grid)
@@ -108,8 +104,6 @@ impl Grid {
 
     fn rbf_calculate_point(cur_point: &na::Vector3<f32>, poles: &Vec<na::Vector3<f32>>) -> f32 {
         let mut rev_distances: Vec<f32> = Vec::with_capacity(poles.len());
-
-
 
         for pole in poles {
             let dist = max(length_on_xz(cur_point, pole), f32::EPSILON * 100.);

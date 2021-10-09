@@ -47,7 +47,7 @@ fn run(grid_path: &str) -> Result<(), failure::Error> {
     gd.init();
 
     'main: loop {
-        gd.modulate();
+        gd.modulate()?;
 
         for event in event_pump.poll_iter() {
             match event {

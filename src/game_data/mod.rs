@@ -5,8 +5,8 @@ use resources::Resources;
 use surface::Surface;
 use crate::camera::MVP;
 use controls::{Actions, Controls};
-use crate::game_data::grid::{Grid, GridingAlgo};
-use crate::game_data::water::{Water, Direction};
+use grid::{Grid, GridingAlgo};
+use water::{Water, Direction};
 use std::time::Duration;
 
 pub mod controls;
@@ -17,7 +17,6 @@ mod grid;
 pub struct GameData {
     gl: gl::Gl,
     viewport: Viewport,
-    grid: Grid,
     surface: Surface,
     water: Water,
     mvp: MVP,
@@ -35,7 +34,7 @@ impl GameData {
         let viewport = gl_render::Viewport::for_window(900, 700); // TODO add size to config
         viewport.use_it(&gl);
 
-        let grid = Grid::new(&res, grid_path, GRID_WIDTH, GridingAlgo::RadialBasisFunction)?;  // TODO: add size to config (200 in subj)
+        let grid = Grid::new(&res, grid_path, GRID_WIDTH, GridingAlgo::RadialBasisFunction)?;
 
         let mut surface = Surface::new(&res, &gl)?;
         surface.set_grid(grid.get_data())?;                     // TODO: move to ::new()
@@ -49,7 +48,7 @@ impl GameData {
 
         let controls = Controls::new();
 
-        Ok(GameData { gl: gl.clone(), viewport, surface, grid, mvp, color_buffer, controls, water })
+        Ok(GameData { gl: gl.clone(), viewport, surface, mvp, color_buffer, controls, water })
     }
 
     pub fn resized(&mut self, w: i32, h: i32) -> Result<(), failure::Error> {
