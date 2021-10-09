@@ -1,7 +1,8 @@
 use failure::err_msg;
 use sdl2::keyboard::Keycode;
 use sdl2::mouse::MouseButton;
-use crate::game_data::GameData;
+use crate::game_data::{GameData, GRID_WIDTH};
+use crate::game_data::grid::GridingAlgo;
 use crate::game_data::water::Direction;
 
 #[derive(PartialEq)]
@@ -28,6 +29,8 @@ pub enum Actions {
     WaveE,
     WaveW,
     Rain,
+    Kriging,
+    RadialBasis,
 }
 
 #[derive(Copy, Clone)]
@@ -40,6 +43,8 @@ pub struct Controls {
     pub wave_e:         KeyStatus,
     pub wave_w:         KeyStatus,
     pub rain:           KeyStatus,
+    pub kriging:        KeyStatus,
+    pub radial_basis:   KeyStatus,
     pub is_rain:        bool,
     pub cam_capture:    KeyStatus,
     mouse_left_clk: na::Vector2<i32>,
@@ -59,6 +64,8 @@ impl Controls {
             wave_n:         KeyStatus::Released,
             wave_e:         KeyStatus::Released,
             wave_w:         KeyStatus::Released,
+            kriging:        KeyStatus::Released,
+            radial_basis:   KeyStatus::Released,
             rain:           KeyStatus::Released,
             is_rain,
             cam_capture:    KeyStatus::Released,
@@ -74,14 +81,16 @@ impl Controls {
         };
 
         match key {
-            Keycode::Escape =>  self.exit       = status,
-            Keycode::F =>       self.flush      = status,
-            Keycode::W =>       self.add_water  = status,
-            Keycode::Num8 =>    self.wave_n     = status,
-            Keycode::Num2 =>    self.wave_s     = status,
-            Keycode::Num4 =>    self.wave_w     = status,
-            Keycode::Num6 =>    self.wave_e     = status,
-            Keycode::R =>       self.rain       = status,
+            Keycode::Escape =>  self.exit         = status,
+            Keycode::F =>       self.flush        = status,
+            Keycode::Q =>       self.add_water    = status,
+            Keycode::W =>       self.wave_n       = status,
+            Keycode::S =>       self.wave_s       = status,
+            Keycode::A =>       self.wave_w       = status,
+            Keycode::D =>       self.wave_e       = status,
+            Keycode::R =>       self.rain         = status,
+            Keycode::Num1 =>    self.radial_basis = status,
+            Keycode::Num2 =>    self.kriging      = status,
             _ => (),
         }
     }
@@ -106,13 +115,15 @@ impl Controls {
 
     pub fn reset_action(&mut self, action: Actions) {
         match action {
-            Actions::Flush    => self.flush      = KeyStatus::Released,
-            Actions::AddWater => self.add_water  = KeyStatus::Released,
-            Actions::WaveN    => self.wave_n     = KeyStatus::Released,
-            Actions::WaveS    => self.wave_s     = KeyStatus::Released,
-            Actions::WaveE    => self.wave_e     = KeyStatus::Released,
-            Actions::WaveW    => self.wave_w     = KeyStatus::Released,
-            Actions::Rain     => self.rain       = KeyStatus::Released,
+            Actions::Flush       => self.flush        = KeyStatus::Released,
+            Actions::AddWater    => self.add_water    = KeyStatus::Released,
+            Actions::WaveN       => self.wave_n       = KeyStatus::Released,
+            Actions::WaveS       => self.wave_s       = KeyStatus::Released,
+            Actions::WaveE       => self.wave_e       = KeyStatus::Released,
+            Actions::WaveW       => self.wave_w       = KeyStatus::Released,
+            Actions::Rain        => self.rain         = KeyStatus::Released,
+            Actions::Kriging     => self.kriging      = KeyStatus::Released,
+            Actions::RadialBasis => self.radial_basis = KeyStatus::Released,
         }
     }
 
@@ -128,9 +139,11 @@ impl Controls {
 
 impl GameData {
     pub fn process_input(&mut self) -> Result<(), failure::Error> {
+        if self.controls.kriging.into() { self.action_set_kriging()? };
+        if self.controls.radial_basis.into() { self.action_set_radial_basis()? };
         if self.controls.exit.into() { self.action_exit() };
         if self.controls.flush.into() { self.action_flush() };
-        if self.controls.add_water.into() { self.action_add_water() };        // TODO: rename inc_water / dec_water
+        if self.controls.add_water.into() { self.action_add_water() };
         if self.controls.wave_n.into() { self.action_wave_n() };
         if self.controls.wave_s.into() { self.action_wave_s() };
         if self.controls.wave_w.into() { self.action_wave_w() };
@@ -177,13 +190,30 @@ impl GameData {
     }
 
     fn action_rain(&mut self) {
-        println!("Rain");
         self.controls.reset_action(Actions::Rain);
         self.controls.is_rain = !self.controls.is_rain;
         match self.controls.is_rain {
             true => println!("Rain start"),
             false => println!("Rain stop"),
         }
+    }
+
+    fn action_set_kriging(&mut self) -> Result<(), failure::Error> {
+        println!("Griding algorithm: Kriging");
+        self.action_flush();
+        self.grid.update_grid(GRID_WIDTH, GridingAlgo::Kriging);
+        self.water.set_grid(&self.grid.get_data());
+        self.surface.set_grid(&self.grid.get_data())?;
+        Ok(())
+    }
+
+    fn action_set_radial_basis(&mut self) -> Result<(), failure::Error> {
+        println!("Griding algorithm: Radial basis function");
+        self.action_flush();
+        self.grid.update_grid(GRID_WIDTH, GridingAlgo::RadialBasisFunction);
+        self.water.set_grid(&self.grid.get_data());
+        self.surface.set_grid(&self.grid.get_data())?;
+        Ok(())
     }
 
     fn action_cam_capture(&mut self) -> Result<(), failure::Error> {

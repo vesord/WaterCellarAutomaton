@@ -104,7 +104,7 @@ impl Water {
         self.vao.unbind();
     }
 
-    pub fn _set_grid(&mut self, grid_heights: &[Vec<f32>]) {
+    pub fn set_grid(&mut self, grid_heights: &[Vec<f32>]) {
         let borders_h = WATER_GIRD_HEIGHT;
         self.grid = generate_borders(grid_heights, borders_h);
         self.water_level_max = borders_h;

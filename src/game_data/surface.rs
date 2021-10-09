@@ -88,7 +88,7 @@ impl Surface {
         self.ebo.unbind();
     }
 
-    pub fn _set_grid(&mut self, grid: &[Vec<f32>]) -> Result<(), failure::Error> {
+    pub fn set_grid(&mut self, grid: &[Vec<f32>]) -> Result<(), failure::Error> {
         let vertices: Vec<Vertex> = generate_vertex_grid(grid)?;
         let indices: Vec<u32> = generate_indices(grid.len())?;
         self._update_buffers(&vertices, &indices);

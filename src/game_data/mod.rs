@@ -16,6 +16,7 @@ mod grid;
 pub struct GameData {
     gl: gl::Gl,
     viewport: Viewport,
+    grid: Grid,
     surface: Surface,
     water: Water,
     mvp: MVP,
@@ -45,7 +46,7 @@ impl GameData {
         let controls = Controls::new();
         let need_exit = false;
 
-        Ok(GameData { gl: gl.clone(), viewport, surface, mvp, color_buffer, controls, water, need_exit })
+        Ok(GameData { gl: gl.clone(), viewport, surface, mvp, color_buffer, controls, grid, water, need_exit })
     }
 
     pub fn resized(&mut self, w: i32, h: i32) -> Result<(), failure::Error> {
