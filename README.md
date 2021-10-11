@@ -2,9 +2,7 @@
 
 ## Oweview
 
-<img src="" width="200" height="200" />
-
-// TODO: add gifs
+<img src="https://github.com/vesord/HeavyStuffForOtherRepos/blob/master/water_cellular_automaton/water_rain_mac.gif" width="321" height="250" />
 
 More examples [bellow this page](#more-examples)
 
@@ -24,11 +22,21 @@ It is possible to simulate rain, waves from sides and increasing water level ove
 
 Install [rust](https://www.rust-lang.org/tools/install)
 
-// TODO: install project for mac
+### macOS
 
-// TODO: install project for linux
+Install [SDL2](https://www.libsdl.org/download-2.0.php) and make sure that cargo has access to libSDL2.a
+
+`cargo run`
+
+### Linux
+
+`cargo run`
 
 ## Controls
+
+Point data file should locate in `assets/grids` dir
+
+By default its `assets/grids/grid.mod1`
 
 - `mouse move with left button pushed` : model *rotation*
 - `W` `A` `S` `D` : add water *waves* from North, West, South, East accordingly
@@ -37,14 +45,33 @@ Install [rust](https://www.rust-lang.org/tools/install)
 - `1` : *Krigging* surface modulation
 - `2` : *Radial basis function* surface modulation
 
-## Demonstrations
-
-// TODO: add gifs
+## More examples
 
 <table>
   <tr>
-    <td> <img src="" width="200" height="200" /> </td>
-    <td> <img src="" width="200" height="200" /> </td>
-    <td> <img src="" width="200" height="200" /> </td>
+    <td> Rain </td>
+    <td> Water level up </td>
+  </tr>
+  <tr>
+    <td> <img src="https://github.com/vesord/HeavyStuffForOtherRepos/blob/master/water_cellular_automaton/water_rain_mac.gif" width="300" height="233" /> </td>
+    <td> <img src="https://github.com/vesord/HeavyStuffForOtherRepos/blob/master/water_cellular_automaton/water_lvlup_mac.gif" width="300" height="233" /> </td>
+  </tr>
+
+  <tr>
+    <td> Wave </td>
+    <td> Another wave </td>
+  </tr>
+  <tr>
+    <td> <img src="https://github.com/vesord/HeavyStuffForOtherRepos/blob/master/water_cellular_automaton/water_wave_0_mac.gif" width="300" height="233" /> </td>
+    <td> <img src="https://github.com/vesord/HeavyStuffForOtherRepos/blob/master/water_cellular_automaton/water_wave_1_mac.gif" width="300" height="233" /> </td>
+  </tr>
+  
+  <tr>
+    <td> Krigging rain </td>
+    <td> Krigging water level up </td>
+  </tr>
+  <tr>
+    <td> <img src="https://github.com/vesord/HeavyStuffForOtherRepos/blob/master/water_cellular_automaton/water_rain_krigging_mac.gif" width="300" height="233" /> </td>
+    <td> <img src="https://github.com/vesord/HeavyStuffForOtherRepos/blob/master/water_cellular_automaton/water_lvlup__krigging_mac.gif" width="300" height="233" /> </td>
   </tr>
 </table>
