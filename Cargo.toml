@@ -6,11 +6,11 @@ build = "build.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[target.'cfg(target_os = "darwin")'.dependencies]
-sdl2 = { version = "0.34.5" }
+[target.'cfg(target_os = "macos")'.dependencies]
+sdl2 = { version = "0.34" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-sdl2 = { version = "0.34.5", features = ["bundled", "static-link"] }
+sdl2 = { version = "0.34" }
 
 [dependencies]
 failure = "0.1"

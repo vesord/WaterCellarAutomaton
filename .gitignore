@@ -2,3 +2,7 @@
 .idea/
 /gl_builder/target
 **/target
+
+**/.DS_store
+install_rust.sh
+Cargo.lock
