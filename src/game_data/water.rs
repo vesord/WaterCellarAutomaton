@@ -49,6 +49,18 @@ impl std::ops::Not for Direction {
     }
 }
 
+impl Direction {
+    pub fn rand() -> Direction {
+        match rand::thread_rng().gen_range(0..3) {
+            0 => Direction::East,
+            1 => Direction::West,
+            2 => Direction::South,
+            _ => Direction::North,
+        }
+
+    }
+}
+
 pub struct Water {
     water_level_max: usize,
     water_level: usize,
@@ -139,13 +151,13 @@ impl Water {
                 _ => (Direction::East, WATER_GRAVITY_FORCE),
             };
 
-            // let rnd_bool: bool = rand::random();
+            let rnd_bool: bool = rand::random();
 
             if (loc.y < self.water_level) || (cur_energy <= 0) {
                 continue ;
             }
 
-            // Check if down is empty
+            // Check down cell
             match self.grid[z][x][y - 1] {
                 Particle::Empty => {
                     self.grid[z][x][y] = Particle::Empty;
@@ -158,15 +170,14 @@ impl Water {
                     cur_dir = dir;
                     self.grid[z][x][y] = Particle::Water(dir, cur_energy);
                 }
-                _ => (),
-                // Particle::Water(dir, energy) => {
-                //     self.grid[z][x][y - 1] = Particle::Water(dir, energy + 1);
-                // }
+                Particle::Water(_, energy) => {
+                    self.grid[z][x][y - 1] = Particle::Water(Direction::rand(), energy + 1);
+                }
             }
 
             if cur_dir == Direction::North {
                 if z == 0 {
-                    self.grid[z][x][y] = Particle::Water(!cur_dir, cur_energy);
+                    self.grid[z][x][y] = Particle::Water(Direction::rand(), cur_energy);
                 }
                 else if (z > 0) && (self.grid[z - 1][x][y] == Particle::Empty) {
                     self.grid[z][x][y] = Particle::Empty;
@@ -174,22 +185,38 @@ impl Water {
                     loc.z = loc.z - 1;
                     square.move_north();
                 }
-                else if (x > 0) && (self.grid[z][x - 1][y] == Particle::Empty) {
-                    self.grid[z][x][y] = Particle::Empty;
-                    self.grid[z][x - 1][y] = Particle::Water(cur_dir, cur_energy - 3);
-                    loc.x = loc.x - 1;
-                    square.move_west();
+                else if rnd_bool {
+                    if (x > 0) && (self.grid[z][x - 1][y] == Particle::Empty) {
+                        self.grid[z][x][y] = Particle::Empty;
+                        self.grid[z][x - 1][y] = Particle::Water(cur_dir, cur_energy - 3);
+                        loc.x = loc.x - 1;
+                        square.move_west();
+                    }
+                    else if (x < WATER_GRID_WIDTH - 2) && (self.grid[z][x + 1][y] == Particle::Empty) {
+                        self.grid[z][x][y] = Particle::Empty;
+                        self.grid[z][x + 1][y] = Particle::Water(cur_dir, cur_energy - 3);
+                        loc.x = loc.x + 1;
+                        square.move_east();
+                    }
                 }
-                else if (x < WATER_GRID_WIDTH - 2) && (self.grid[z][x + 1][y] == Particle::Empty) {
-                    self.grid[z][x][y] = Particle::Empty;
-                    self.grid[z][x + 1][y] = Particle::Water(cur_dir, cur_energy - 3);
-                    loc.x = loc.x + 1;
-                    square.move_east();
+                else {
+                    if (x < WATER_GRID_WIDTH - 2) && (self.grid[z][x + 1][y] == Particle::Empty) {
+                        self.grid[z][x][y] = Particle::Empty;
+                        self.grid[z][x + 1][y] = Particle::Water(cur_dir, cur_energy - 3);
+                        loc.x = loc.x + 1;
+                        square.move_east();
+                    }
+                    else if (x > 0) && (self.grid[z][x - 1][y] == Particle::Empty) {
+                        self.grid[z][x][y] = Particle::Empty;
+                        self.grid[z][x - 1][y] = Particle::Water(cur_dir, cur_energy - 3);
+                        loc.x = loc.x - 1;
+                        square.move_west();
+                    }
                 }
             }
             else if cur_dir == Direction::South {
                 if z >= WATER_GRID_WIDTH - 2 {
-                    self.grid[z][x][y] = Particle::Water(!cur_dir, cur_energy);
+                    self.grid[z][x][y] = Particle::Water(Direction::rand(), cur_energy);
                 }
                 if (z < WATER_GRID_WIDTH - 2) && (self.grid[z + 1][x][y] == Particle::Empty) {
                     self.grid[z][x][y] = Particle::Empty;
@@ -197,22 +224,38 @@ impl Water {
                     loc.z = loc.z + 1;
                     square.move_south();
                 }
-                else if (x < WATER_GRID_WIDTH - 2) && (self.grid[z][x + 1][y] == Particle::Empty) {
-                    self.grid[z][x][y] = Particle::Empty;
-                    self.grid[z][x + 1][y] = Particle::Water(cur_dir, cur_energy - 3);
-                    loc.x = loc.x + 1;
-                    square.move_east();
+                else if rnd_bool {
+                    if (x < WATER_GRID_WIDTH - 2) && (self.grid[z][x + 1][y] == Particle::Empty) {
+                        self.grid[z][x][y] = Particle::Empty;
+                        self.grid[z][x + 1][y] = Particle::Water(cur_dir, cur_energy - 3);
+                        loc.x = loc.x + 1;
+                        square.move_east();
+                    }
+                    else if (x > 0) && (self.grid[z][x - 1][y] == Particle::Empty) {
+                        self.grid[z][x][y] = Particle::Empty;
+                        self.grid[z][x - 1][y] = Particle::Water(cur_dir, cur_energy - 3);
+                        loc.x = loc.x - 1;
+                        square.move_west();
+                    }
                 }
-                else if (x > 0) && (self.grid[z][x - 1][y] == Particle::Empty) {
-                    self.grid[z][x][y] = Particle::Empty;
-                    self.grid[z][x - 1][y] = Particle::Water(cur_dir, cur_energy - 3);
-                    loc.x = loc.x - 1;
-                    square.move_west();
+                else {
+                    if (x > 0) && (self.grid[z][x - 1][y] == Particle::Empty) {
+                        self.grid[z][x][y] = Particle::Empty;
+                        self.grid[z][x - 1][y] = Particle::Water(cur_dir, cur_energy - 3);
+                        loc.x = loc.x - 1;
+                        square.move_west();
+                    }
+                    else if (x < WATER_GRID_WIDTH - 2) && (self.grid[z][x + 1][y] == Particle::Empty) {
+                        self.grid[z][x][y] = Particle::Empty;
+                        self.grid[z][x + 1][y] = Particle::Water(cur_dir, cur_energy - 3);
+                        loc.x = loc.x + 1;
+                        square.move_east();
+                    }
                 }
             }
             else if cur_dir == Direction::East {
                 if x >= WATER_GRID_WIDTH - 2 {
-                    self.grid[z][x][y] = Particle::Water(!cur_dir, cur_energy);
+                    self.grid[z][x][y] = Particle::Water(Direction::rand(), cur_energy);
                 }
                 if (x < WATER_GRID_WIDTH - 2) && (self.grid[z][x + 1][y] == Particle::Empty) {
                     self.grid[z][x][y] = Particle::Empty;
@@ -220,22 +263,38 @@ impl Water {
                     loc.x = loc.x + 1;
                     square.move_east();
                 }
-                else if (z < WATER_GRID_WIDTH - 2) && (self.grid[z + 1][x][y] == Particle::Empty) {
-                    self.grid[z][x][y] = Particle::Empty;
-                    self.grid[z + 1][x][y] = Particle::Water(cur_dir, cur_energy - 3);
-                    loc.z = loc.z + 1;
-                    square.move_south();
+                else if rnd_bool {
+                    if (z < WATER_GRID_WIDTH - 2) && (self.grid[z + 1][x][y] == Particle::Empty) {
+                        self.grid[z][x][y] = Particle::Empty;
+                        self.grid[z + 1][x][y] = Particle::Water(cur_dir, cur_energy - 3);
+                        loc.z = loc.z + 1;
+                        square.move_south();
+                    }
+                    else if (z > 0) && (self.grid[z - 1][x][y] == Particle::Empty) {
+                        self.grid[z][x][y] = Particle::Empty;
+                        self.grid[z - 1][x][y] = Particle::Water(cur_dir, cur_energy - 3);
+                        loc.z = loc.z - 1;
+                        square.move_north();
+                    }
                 }
-                else if (z > 0) && (self.grid[z - 1][x][y] == Particle::Empty) {
-                    self.grid[z][x][y] = Particle::Empty;
-                    self.grid[z - 1][x][y] = Particle::Water(cur_dir, cur_energy - 3);
-                    loc.z = loc.z - 1;
-                    square.move_north();
+                else {
+                    if (z > 0) && (self.grid[z - 1][x][y] == Particle::Empty) {
+                        self.grid[z][x][y] = Particle::Empty;
+                        self.grid[z - 1][x][y] = Particle::Water(cur_dir, cur_energy - 3);
+                        loc.z = loc.z - 1;
+                        square.move_north();
+                    }
+                    else if (z < WATER_GRID_WIDTH - 2) && (self.grid[z + 1][x][y] == Particle::Empty) {
+                        self.grid[z][x][y] = Particle::Empty;
+                        self.grid[z + 1][x][y] = Particle::Water(cur_dir, cur_energy - 3);
+                        loc.z = loc.z + 1;
+                        square.move_south();
+                    }
                 }
             }
             else if cur_dir == Direction::West {
                 if x <= 0 {
-                    self.grid[z][x][y] = Particle::Water(!cur_dir, cur_energy);
+                    self.grid[z][x][y] = Particle::Water(Direction::rand(), cur_energy);
                 }
                 if (x > 0) && (self.grid[z][x - 1][y] == Particle::Empty) {
                     self.grid[z][x][y] = Particle::Empty;
@@ -243,17 +302,33 @@ impl Water {
                     loc.x = loc.x - 1;
                     square.move_west();
                 }
-                else if (z > 0) && (self.grid[z - 1][x][y] == Particle::Empty) {
-                    self.grid[z][x][y] = Particle::Empty;
-                    self.grid[z - 1][x][y] = Particle::Water(cur_dir, cur_energy - 3);
-                    loc.z = loc.z - 1;
-                    square.move_north();
+                else if rnd_bool {
+                    if (z > 0) && (self.grid[z - 1][x][y] == Particle::Empty) {
+                        self.grid[z][x][y] = Particle::Empty;
+                        self.grid[z - 1][x][y] = Particle::Water(cur_dir, cur_energy - 3);
+                        loc.z = loc.z - 1;
+                        square.move_north();
+                    }
+                    else if (z < WATER_GRID_WIDTH - 2) && (self.grid[z + 1][x][y] == Particle::Empty) {
+                        self.grid[z][x][y] = Particle::Empty;
+                        self.grid[z + 1][x][y] = Particle::Water(cur_dir, cur_energy - 3);
+                        loc.z = loc.z + 1;
+                        square.move_south();
+                    }
                 }
-                else if (z < WATER_GRID_WIDTH - 2) && (self.grid[z + 1][x][y] == Particle::Empty) {
-                    self.grid[z][x][y] = Particle::Empty;
-                    self.grid[z + 1][x][y] = Particle::Water(cur_dir, cur_energy - 3);
-                    loc.z = loc.z + 1;
-                    square.move_south();
+                else {
+                    if (z < WATER_GRID_WIDTH - 2) && (self.grid[z + 1][x][y] == Particle::Empty) {
+                        self.grid[z][x][y] = Particle::Empty;
+                        self.grid[z + 1][x][y] = Particle::Water(cur_dir, cur_energy - 3);
+                        loc.z = loc.z + 1;
+                        square.move_south();
+                    }
+                    else if (z > 0) && (self.grid[z - 1][x][y] == Particle::Empty) {
+                        self.grid[z][x][y] = Particle::Empty;
+                        self.grid[z - 1][x][y] = Particle::Water(cur_dir, cur_energy - 3);
+                        loc.z = loc.z - 1;
+                        square.move_north();
+                    }
                 }
             }
         }
@@ -392,7 +467,7 @@ impl Water {
             for x in x_range.clone() {
                 for y in y_range.clone() {
                     if self.grid[z][x][y] == Particle::Empty {
-                        self.grid[z][x][y] = Particle::Water(!dir, (GRID_WIDTH * GRID_WIDTH / 5) as i32);
+                        self.grid[z][x][y] = Particle::Water(!dir, (GRID_WIDTH * GRID_WIDTH) as i32);
                         self.add_particle(x, y, z);
                     }
                 }
