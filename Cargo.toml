@@ -1,16 +1,11 @@
 [package]
 name = "mod1"
 version = "0.1.0"
-edition = "2018"
+edition = "2021"
 build = "build.rs"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[target.'cfg(target_os = "macos")'.dependencies]
-sdl2 = { version = "0.34" }
-
-[target.'cfg(target_os = "linux")'.dependencies]
-sdl2 = { version = "0.34" }
+[target.'cfg(not(target_os = "macos"))'.dependencies]
+sdl2 = { version = "0.34", features = ["bundled", "static-link"] }
 
 [dependencies]
 failure = "0.1"
@@ -20,7 +15,7 @@ gl_render = { path = "gl_render" }
 render_gl_derive = { path = "render_gl_derive" }
 resources = { path = "resources" }
 rand = "0.8"
-chrono = "0.4" # TODO: remove
+chrono = "0.4"
 
 [features]
 gl_debug = ["gl_builder/debug"]
