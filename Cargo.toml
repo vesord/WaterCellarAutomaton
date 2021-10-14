@@ -1,7 +1,7 @@
 [package]
 name = "mod1"
 version = "0.1.0"
-edition = "2021"
+edition = "2018"
 build = "build.rs"
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
