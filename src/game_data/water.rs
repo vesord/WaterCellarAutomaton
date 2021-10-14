@@ -367,14 +367,14 @@ impl Water {
     }
 
     pub fn increase_water_level(&mut self) {
-        let new_water_level = (self.water_level + 1).clamp(0, self.water_level_max - 2); // TODO: config
+        let new_water_level = (self.water_level + 1).clamp(0, self.water_level_max - 2);
         self.water_level = new_water_level;
         self.fill_water_level(new_water_level);
     }
 
     fn fill_water_level(&mut self, level: usize) {
-        let xz_size = WATER_GRID_WIDTH as u32; // TODO: add xyz_size to config
-        let y_size = WATER_GIRD_HEIGHT as u32; // TODO: add xyz_size to config
+        let xz_size = WATER_GRID_WIDTH as u32;
+        let y_size = WATER_GIRD_HEIGHT as u32;
         let mut cur_water_idx_x;
         let mut cur_water_idx_z = 0;
 
@@ -385,7 +385,7 @@ impl Water {
                     Particle::Empty => {
                         add_particle(&mut self.locations, &mut self.ib_data,
                                      cur_water_idx_x, level, cur_water_idx_z,
-                                     xz_size, y_size);      // TODO: add xyz_size to config
+                                     xz_size, y_size);
                         Particle::Water(Direction::East, 0)
                     },
                     Particle::Water(any_dir, any_en) => Particle::Water(*any_dir, *any_en),
